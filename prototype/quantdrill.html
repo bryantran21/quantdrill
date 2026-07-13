@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuantDrill — aptitude practice</title>
+<style>
+  :root {
+    --bg: #0c0c10;
+    --surface: #141419;
+    --surface-2: #1c1c24;
+    --line: #2a2a34;
+    --text: #e7e7ee;
+    --muted: #8a8a99;
+    --accent: #8b7dff;
+    --accent-dim: #5a4fd6;
+    --good: #4ade80;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --mono: "SF Mono", "JetBrains Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    line-height: 1.5; min-height: 100vh; font-feature-settings: "tnum" 1, "cv05" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 4px; }
+  .logo { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .logo b { color: var(--accent); }
+  .tagline { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+
+  nav { display: flex; gap: 4px; margin: 28px 0 24px; flex-wrap: wrap; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
+  nav button {
+    flex: 1; min-width: 120px; background: transparent; border: none; color: var(--muted);
+    font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 9px 12px;
+    border-radius: 7px; cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active { background: var(--surface-2); color: var(--text); box-shadow: 0 0 0 1px var(--line); }
+  nav button .k { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-left: 6px; opacity: .7; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .panel-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px; gap: 16px; }
+  .panel-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .panel-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; max-width: 46ch; }
+
+  .stats { display: flex; gap: 20px; font-family: var(--mono); font-size: 13px; }
+  .stat { text-align: right; }
+  .stat .v { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .stat .l { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+  .stat.timer .v.low { color: var(--warn); }
+  .stat.timer .v.crit { color: var(--bad); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 28px; margin-bottom: 16px;
+  }
+  .prompt { font-size: 17px; margin-bottom: 4px; }
+  .prompt .seq { font-family: var(--mono); font-size: 24px; letter-spacing: .04em; font-weight: 500; }
+  .prompt .frac { display: inline-flex; flex-direction: column; text-align: center; vertical-align: middle; font-size: 15px; line-height: 1.05; margin: 0 2px; }
+  .prompt .frac .n { border-bottom: 1.5px solid var(--text); padding: 0 3px; }
+  .qmark { color: var(--accent); }
+  .hint { color: var(--muted); font-size: 13px; font-family: var(--mono); margin-top: 14px; }
+
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 22px; }
+  @media (max-width: 520px) { .opts { grid-template-columns: 1fr; } }
+  .opt {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; cursor: pointer; font-family: var(--mono); font-size: 16px;
+    display: flex; align-items: center; gap: 12px; transition: all .12s; text-align: left; color: var(--text);
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent-dim); background: #20202a; }
+  .opt .letter { color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 5px; width: 22px; height: 22px; display: grid; place-items: center; flex-shrink: 0; }
+  .opt.correct { border-color: var(--good); background: rgba(74,222,128,.08); }
+  .opt.correct .letter { color: var(--good); border-color: var(--good); }
+  .opt.wrong { border-color: var(--bad); background: rgba(248,113,113,.08); }
+  .opt.wrong .letter { color: var(--bad); border-color: var(--bad); }
+  .opt:disabled { cursor: default; }
+
+  .answer-row { display: flex; gap: 10px; margin-top: 22px; }
+  input[type=text] {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 13px 16px; color: var(--text); font-family: var(--mono); font-size: 16px; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent-dim); }
+  input.right { border-color: var(--good); }
+  input.wrong { border-color: var(--bad); }
+
+  button.btn {
+    background: var(--accent); color: #0c0c10; border: none; border-radius: 10px;
+    padding: 13px 22px; font-family: var(--sans); font-weight: 600; font-size: 14px; cursor: pointer;
+    transition: all .12s; white-space: nowrap;
+  }
+  button.btn:hover { background: #9d90ff; }
+  button.btn.ghost { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+  button.btn.ghost:hover { color: var(--text); box-shadow: inset 0 0 0 1px var(--accent-dim); }
+
+  .feedback { margin-top: 18px; font-size: 14px; padding: 14px 16px; border-radius: 10px; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.25); }
+  .feedback.no { background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25); }
+  .feedback .work { font-family: var(--mono); font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .feedback b.tag { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 12px; padding: 6px 11px; border-radius: 20px;
+    border: 1px solid var(--line); color: var(--muted); cursor: pointer; user-select: none; transition: all .12s;
+  }
+  .chip.on { border-color: var(--accent-dim); color: var(--accent); background: rgba(139,125,255,.08); }
+
+  /* orderbook */
+  .ob-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.6fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 20px; }
+  .ob-cell { background: var(--surface); padding: 12px 14px; font-family: var(--mono); font-size: 14px; display: flex; align-items: center; }
+  .ob-cell.head { background: var(--surface-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .ob-cell.item { font-weight: 600; }
+  .ob-cell.bundle { color: var(--accent); }
+  .act-group { display: flex; gap: 4px; width: 100%; }
+  .act { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; padding: 6px 0; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; color: var(--muted); transition: all .12s; }
+  .act.buy.on { border-color: var(--good); color: var(--good); background: rgba(74,222,128,.1); }
+  .act.sell.on { border-color: var(--bad); color: var(--bad); background: rgba(248,113,113,.1); }
+  .act.skip.on { border-color: var(--accent-dim); color: var(--accent); background: rgba(139,125,255,.08); }
+
+  /* zap */
+  .zap-eq { font-family: var(--mono); font-size: 44px; font-weight: 600; text-align: center; padding: 30px 0; letter-spacing: .02em; }
+  .arrows { font-size: 34px; text-align: center; letter-spacing: 6px; padding: 8px 0; font-family: var(--mono); }
+  .arrows.a { color: var(--text); }
+  .arrows.b { color: var(--accent); }
+  .zap-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+  .zap-btn { padding: 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 16px; font-weight: 600; cursor: pointer; transition: all .1s; }
+  .zap-btn:hover { border-color: var(--accent-dim); }
+  .zap-btn .kbd { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 4px; }
+  .zap-btn.flash-ok { border-color: var(--good); background: rgba(74,222,128,.12); }
+  .zap-btn.flash-no { border-color: var(--bad); background: rgba(248,113,113,.12); }
+  .zap-start { text-align: center; padding: 40px 0; }
+
+  .runbar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+  .runbar > div { height: 100%; background: var(--accent); transition: width .1s linear; }
+
+  footer { margin-top: 40px; color: var(--muted); font-size: 12px; font-family: var(--mono); text-align: center; line-height: 1.7; }
+  footer a { color: var(--accent); text-decoration: none; }
+  .kbd-inline { font-family: var(--mono); font-size: 11px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="logo">Quant<b>Drill</b></div>
+      <div class="tagline">// aptitude reps for trading assessments</div>
+    </div>
+  </header>
+
+  <nav>
+    <button class="active" data-p="seq">Sequences<span class="k">1</span></button>
+    <button data-p="prob">Beat the Odds<span class="k">2</span></button>
+    <button data-p="ob">Orderbooks<span class="k">3</span></button>
+    <button data-p="zap">Zap<span class="k">4</span></button>
+  </nav>
+
+  <!-- ============ SEQUENCES ============ -->
+  <section class="panel active" id="seq">
+    <div class="panel-head">
+      <div class="panel-title">Sequences</div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="seq-score">0</div><div class="l">correct</div></div>
+        <div class="stat"><div class="v" id="seq-total">0</div><div class="l">seen</div></div>
+      </div>
+    </div>
+    <div class="panel-sub">Find the next term. Includes fraction sequences — track numerator and denominator as two separate sequences. Type an integer or a fraction like <span class="kbd-inline">3/4</span>.</div>
+
+    <div class="controls" style="margin-bottom:16px">
+      <div class="toggle-group" id="seq-types">
+        <span class="chip on" data-t="arith">arithmetic</span>
+        <span class="chip on" data-t="geo">geometric</span>
+        <span class="chip on" data-t="quad">quadratic</span>
+        <span class="chip on" data-t="fib">fibonacci</span>
+        <span class="chip on" data-t="woven">woven</span>
+        <span class="chip on" data-t="frac">fractions</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="prompt"><span class="seq" id="seq-display"></span></div>
+      <div class="answer-row">
+        <input type="text" id="seq-input" placeholder="next term" autocomplete="off" />
+        <button class="btn" id="seq-submit">Check</button>
+        <button class="btn ghost" id="seq-skip">Skip</button>
+      </div>
+      <div class="feedback" id="seq-fb"></div>
+    </div>
+  </section>
+
+  <!-- ============ PROBABILITY ============ -->
+  <section class="panel" id="prob">
+    <div class="panel-head">
+      <div class="panel-title">Beat the Odds</div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="prob-score">0</div><div class="l">correct</div></div>
+        <div class="stat"><div class="v" id="prob-total">0</div><div class="l">seen</div></div>
+        <div class="stat timer"><div class="v" id="prob-timer">90</div><div class="l">seconds</div></div>
+      </div>
+    </div>
+    <div class="panel-sub">Multiple choice, 90 seconds each. Answers are often the nearest option — get close enough to pick, you rarely need an exact decimal.</div>
+
+    <div class="controls" style="margin-bottom:16px">
+      <div class="toggle-group" id="prob-types">
+        <span class="chip on" data-t="ev">expected value</span>
+        <span class="chip on" data-t="comp">complement</span>
+        <span class="chip on" data-t="binom">binomial</span>
+        <span class="chip on" data-t="bayes">bayes</span>
+        <span class="chip on" data-t="cond">conditional</span>
+        <span class="chip on" data-t="lin">linearity</span>
+        <span class="chip on" data-t="geo">geometric</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="prompt" id="prob-prompt"></div>
+      <div class="opts" id="prob-opts"></div>
+      <div class="feedback" id="prob-fb"></div>
+    </div>
+    <div class="controls"><button class="btn ghost" id="prob-next" style="display:none">Next →</button></div>
+  </section>
+
+  <!-- ============ ORDERBOOKS ============ -->
+  <section class="panel" id="ob">
+    <div class="panel-head">
+      <div class="panel-title">Orderbooks</div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="ob-score">0</div><div class="l">solved</div></div>
+        <div class="stat"><div class="v" id="ob-total">0</div><div class="l">seen</div></div>
+      </div>
+    </div>
+    <div class="panel-sub">You buy at the ask, sell at the bid. Build the bundle from parts and sell it, or buy the bundle and break it into parts — pick the profitable direction. Sometimes there's no arbitrage: the right move is to skip everything.</div>
+
+    <div class="ob-grid" id="ob-grid"></div>
+    <div class="controls" style="margin-top:16px">
+      <button class="btn" id="ob-check">Lock in trade</button>
+      <button class="btn ghost" id="ob-new" style="display:none">New book →</button>
+    </div>
+    <div class="feedback" id="ob-fb" style="margin-top:16px"></div>
+  </section>
+
+  <!-- ============ ZAP ============ -->
+  <section class="panel" id="zap">
+    <div class="panel-head">
+      <div class="panel-title">Zap</div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="zap-score">0</div><div class="l">correct</div></div>
+        <div class="stat"><div class="v" id="zap-streak">0</div><div class="l">streak</div></div>
+        <div class="stat timer"><div class="v" id="zap-timer">30</div><div class="l">seconds</div></div>
+      </div>
+    </div>
+    <div class="panel-sub">Two reflex games, 30-second runs. Speed and accuracy both count — answer with the keyboard.</div>
+
+    <div class="controls" style="margin-bottom:16px">
+      <div class="toggle-group" id="zap-mode">
+        <span class="chip on" data-m="parity">odd / even</span>
+        <span class="chip" data-m="arrows">arrow match</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="zap-play" style="display:none">
+        <div id="zap-content"></div>
+        <div class="runbar"><div id="zap-bar" style="width:100%"></div></div>
+        <div class="zap-btns">
+          <button class="zap-btn" id="zap-yes">Yes<span class="kbd">← left arrow</span></button>
+          <button class="zap-btn" id="zap-no">No<span class="kbd">→ right arrow</span></button>
+        </div>
+      </div>
+      <div class="zap-start" id="zap-idle">
+        <div style="color:var(--muted); font-size:14px; margin-bottom:18px" id="zap-instr"></div>
+        <button class="btn" id="zap-begin">Start 30s run</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    built for reps · warm up on <a href="https://arithmetic.zetamac.com" target="_blank" rel="noopener">zetamac</a> before the real thing<br>
+    keys: <span class="kbd-inline">1</span>–<span class="kbd-inline">4</span> switch sections · <span class="kbd-inline">enter</span> submit · <span class="kbd-inline">←</span>/<span class="kbd-inline">→</span> in Zap
+  </footer>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const rint = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; };
+function comb(n, k) { if (k < 0 || k > n) return 0; k = Math.min(k, n - k); let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
+const round = (x, d = 2) => { const p = Math.pow(10, d); return Math.round(x * p) / p; };
+function fracStr(n, d) { const g = gcd(n, d); n /= g; d /= g; return d === 1 ? '' + n : n + '/' + d; }
+
+/* ---------- tab nav ---------- */
+const panels = document.querySelectorAll('.panel');
+const navBtns = document.querySelectorAll('nav button');
+function showPanel(id) {
+  panels.forEach(p => p.classList.toggle('active', p.id === id));
+  navBtns.forEach(b => b.classList.toggle('active', b.dataset.p === id));
+  if (id === 'seq') seqInput.focus();
+}
+navBtns.forEach(b => b.addEventListener('click', () => showPanel(b.dataset.p)));
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === '1') showPanel('seq');
+  if (e.key === '2') showPanel('prob');
+  if (e.key === '3') showPanel('ob');
+  if (e.key === '4') showPanel('zap');
+});
+
+/* chip toggles */
+function wireChips(containerId, onChange) {
+  document.querySelectorAll('#' + containerId + ' .chip').forEach(c => {
+    c.addEventListener('click', () => { c.classList.toggle('on'); onChange && onChange(); });
+  });
+}
+function activeChips(containerId) {
+  return [...document.querySelectorAll('#' + containerId + ' .chip.on')].map(c => c.dataset.t || c.dataset.m);
+}
+
+/* ============================================================
+   SEQUENCES
+============================================================ */
+const seqDisplay = document.getElementById('seq-display');
+const seqInput = document.getElementById('seq-input');
+const seqFb = document.getElementById('seq-fb');
+let seqScore = 0, seqSeen = 0, seqAnswer = null, seqRule = '';
+
+function genSequence() {
+  const types = activeChips('seq-types');
+  const t = types.length ? pick(types) : 'arith';
+  let terms = [], next, rule;
+
+  if (t === 'arith') {
+    const start = rint(1, 20), step = rint(2, 12) * (Math.random() < .2 ? -1 : 1);
+    for (let i = 0; i < 5; i++) terms.push(start + i * step);
+    next = start + 5 * step; rule = `arithmetic, common difference ${step}`;
+    terms = terms.map(String);
+  } else if (t === 'geo') {
+    const start = rint(2, 5), ratio = rint(2, 4);
+    for (let i = 0; i < 4; i++) terms.push(start * Math.pow(ratio, i));
+    next = start * Math.pow(ratio, 4); rule = `geometric, ratio ×${ratio}`;
+    terms = terms.map(String);
+  } else if (t === 'quad') {
+    const a = rint(1, 3), b = rint(0, 4), c = rint(0, 5);
+    const f = n => a * n * n + b * n + c;
+    for (let i = 1; i <= 5; i++) terms.push(f(i));
+    next = f(6);
+    rule = `quadratic — second differences constant (${2 * a}). Next gap continues the pattern`;
+    terms = terms.map(String);
+  } else if (t === 'fib') {
+    let x = rint(1, 4), y = rint(2, 6);
+    terms = [x, y];
+    for (let i = 0; i < 3; i++) { const z = x + y; terms.push(z); x = y; y = z; }
+    next = x + y; rule = `each term = sum of the previous two`;
+    terms = terms.map(String);
+  } else if (t === 'woven') {
+    // two interleaved arithmetic sequences
+    const s1 = rint(1, 10), d1 = rint(2, 8) * (Math.random() < .3 ? -1 : 1);
+    const s2 = rint(20, 60), d2 = rint(2, 10) * (Math.random() < .6 ? -1 : 1);
+    const A = [], B = [];
+    for (let i = 0; i < 4; i++) { A.push(s1 + i * d1); B.push(s2 + i * d2); }
+    // interleave A0,B0,A1,B1,A2,B2 -> ? is next A (index 3)
+    terms = [A[0], B[0], A[1], B[1], A[2], B[2]];
+    next = A[3];
+    rule = `woven: odd positions ${A.slice(0,3).join(', ')} (step ${d1}); even positions ${B.slice(0,3).join(', ')} (step ${d2}). The ? is an odd position`;
+    terms = terms.map(String);
+  } else { // fractions
+    // numerator and denominator each follow a simple rule
+    const nStart = rint(1, 5), nStep = rint(1, 4);
+    const dStart = rint(2, 6), dStep = rint(1, 4);
+    const raw = [];
+    for (let i = 0; i < 4; i++) raw.push([nStart + i * nStep, dStart + i * dStep]);
+    const nextPair = [nStart + 4 * nStep, dStart + 4 * dStep];
+    terms = raw.map(([n, d]) => renderFrac(n, d));
+    next = fracStr(nextPair[0], nextPair[1]);
+    rule = `fraction sequence: numerators ${raw.map(r=>r[0]).join(', ')} (step ${nStep}); denominators ${raw.map(r=>r[1]).join(', ')} (step ${dStep})`;
+    seqDisplay.innerHTML = terms.join('&nbsp;&nbsp;') + '&nbsp;&nbsp;<span class="qmark">?</span>';
+    seqAnswer = next; seqRule = rule; seqInput.value = ''; seqInput.className = ''; seqFb.className = 'feedback'; seqInput.focus();
+    return;
+  }
+  seqDisplay.innerHTML = terms.join(',&nbsp;&nbsp;') + ',&nbsp;&nbsp;<span class="qmark">?</span>';
+  seqAnswer = String(next); seqRule = rule;
+  seqInput.value = ''; seqInput.className = ''; seqFb.className = 'feedback'; seqInput.focus();
+}
+function renderFrac(n, d) {
+  const g = gcd(n, d); n /= g; d /= g;
+  if (d === 1) return '' + n;
+  return `<span class="frac"><span class="n">${n}</span><span>${d}</span></span>`;
+}
+function normFrac(s) { // normalize "a/b" or "n" to lowest terms canonical string
+  s = s.trim().replace(/\s/g, '');
+  if (s.includes('/')) { const [a, b] = s.split('/').map(Number); if (!b) return s; return fracStr(a, b); }
+  return s;
+}
+function seqSubmit() {
+  if (seqAnswer === null) return;
+  const val = normFrac(seqInput.value);
+  const ans = normFrac(seqAnswer);
+  seqSeen++;
+  const ok = val === ans;
+  if (ok) seqScore++;
+  seqInput.className = ok ? 'right' : 'wrong';
+  seqFb.className = 'feedback show ' + (ok ? 'ok' : 'no');
+  seqFb.innerHTML = ok
+    ? `<b class="tag" style="color:var(--good)">correct</b> — ${seqRule}.`
+    : `<b class="tag" style="color:var(--bad)">answer: ${seqAnswer}</b><div class="work">${seqRule}.</div>`;
+  document.getElementById('seq-score').textContent = seqScore;
+  document.getElementById('seq-total').textContent = seqSeen;
+  seqAnswer = null;
+  setTimeout(genSequence, ok ? 700 : 2600);
+}
+document.getElementById('seq-submit').addEventListener('click', seqSubmit);
+document.getElementById('seq-skip').addEventListener('click', () => { seqSeen++; document.getElementById('seq-total').textContent = seqSeen; seqFb.className='feedback show no'; seqFb.innerHTML = `<b class="tag">answer: ${seqAnswer}</b><div class="work">${seqRule}.</div>`; seqAnswer=null; setTimeout(genSequence, 2200); });
+seqInput.addEventListener('keydown', e => { if (e.key === 'Enter') { seqAnswer !== null ? seqSubmit() : genSequence(); } });
+wireChips('seq-types');
+
+/* ============================================================
+   BEAT THE ODDS
+============================================================ */
+const probPrompt = document.getElementById('prob-prompt');
+const probOpts = document.getElementById('prob-opts');
+const probFb = document.getElementById('prob-fb');
+const probNext = document.getElementById('prob-next');
+let probScore = 0, probSeen = 0, probCorrect = null, probTimer = null, probTime = 90, probAnswered = false;
+
+function makeMoneyOpts(correct, spread) {
+  const set = new Set([correct]);
+  const cands = [correct + spread, correct - spread, correct + 2*spread, -correct, correct*2, 0];
+  for (const c of shuffle(cands)) { if (set.size >= 4) break; set.add(round(c,2)); }
+  return shuffle([...set]).map(v => ({ val: v, label: (v<0?'−$':'+$') + Math.abs(v).toFixed(2), correct: v === correct }));
+}
+function makeProbOpts(correct) {
+  const set = new Set([correct]);
+  const cands = [round(1-correct,2), round(correct/2,2), round(Math.min(0.99,correct*1.6),2), round(correct+0.17,2), round(Math.abs(correct-0.25),2), 0.5];
+  for (const c of shuffle(cands)) { if (set.size >= 4) break; if (c>=0 && c<=1) set.add(c); }
+  while (set.size < 4) set.add(round(Math.random(),2));
+  return shuffle([...set]).map(v => ({ val: v, label: v.toFixed(2), correct: v === correct }));
+}
+function makeNumOpts(correct) {
+  const set = new Set([correct]);
+  const cands = [correct+1, correct-1, correct*2, Math.round(correct/2), correct+2, 0];
+  for (const c of shuffle(cands)) { if (set.size >= 4) break; if (c >= 0) set.add(c); }
+  while (set.size < 4) set.add(rint(0, correct+3));
+  return shuffle([...set]).map(v => ({ val: v, label: '' + v, correct: v === correct }));
+}
+
+function genProb() {
+  const types = activeChips('prob-types');
+  const t = types.length ? pick(types) : 'ev';
+  let prompt, opts, work;
+
+  if (t === 'ev') {
+    const cost = rint(3, 8), win = rint(10, 40), p = pick([0.1,0.2,0.25,0.5]);
+    const ev = round(p * win - cost, 2);
+    prompt = `You pay <b>$${cost}</b> to play. With probability <b>${p}</b> you win <b>$${win}</b>, otherwise nothing. What's your <b>net</b> expected value?`;
+    opts = makeMoneyOpts(ev, rint(1,3));
+    work = `EV of the payout = ${p} × $${win} = $${round(p*win,2)}. Net = ${round(p*win,2)} − ${cost} = <b>$${ev}</b>. ${ev>=0?'Positive → play.':'Negative → don\'t play.'}`;
+  } else if (t === 'comp') {
+    const n = rint(2, 4), faces = 6, target = rint(1,6);
+    const pFail = (faces-1)/faces;
+    const ans = round(1 - Math.pow(pFail, n), 2);
+    prompt = `You roll a fair die <b>${n} times</b>. Probability of <b>at least one ${target}</b>?`;
+    opts = makeProbOpts(ans);
+    work = `P(none) = (5/6)<sup>${n}</sup> = ${round(Math.pow(pFail,n),3)}. P(at least one) = 1 − ${round(Math.pow(pFail,n),3)} = <b>${ans}</b>. Multiply the failure fraction, once per roll.`;
+  } else if (t === 'binom') {
+    const n = rint(3, 5), k = rint(1, n-1), p = pick([0.5, 1/3, 0.25, 0.2, 0.6]);
+    const pl = ({0.5:'1/2','0.3333333333333333':'1/3',0.25:'1/4',0.2:'1/5',0.6:'3/5'})[p] || p;
+    const prob = comb(n,k) * Math.pow(p,k) * Math.pow(1-p, n-k);
+    const ans = round(prob, 2);
+    prompt = `An event happens with probability <b>${typeof pl==='string'?pl:p}</b> each try. In <b>${n}</b> tries, probability of <b>exactly ${k}</b>?`;
+    opts = makeProbOpts(ans);
+    work = `Binomial: C(${n},${k}) × p<sup>${k}</sup> × (1−p)<sup>${n-k}</sup> = ${comb(n,k)} × ${round(Math.pow(p,k),3)} × ${round(Math.pow(1-p,n-k),3)} = <b>${ans}</b>. C(${n},${k}) = ${comb(n,k)}.`;
+  } else if (t === 'bayes') {
+    const base = pick([1,2,5]); // percent
+    const acc = pick([90,95,80]);
+    const N = 1000;
+    const sick = N * base/100, healthy = N - sick;
+    const truePos = sick * acc/100, falsePos = healthy * (100-acc)/100;
+    const ans = round(truePos / (truePos + falsePos), 2);
+    prompt = `<b>${base}%</b> of people have a condition. A test is <b>${acc}%</b> accurate both ways. You test <b>positive</b>. Probability you actually have it?`;
+    opts = makeProbOpts(ans);
+    work = `Imagine ${N} people: ${sick} have it, ${healthy} don't. True positives = ${acc}% × ${sick} = ${round(truePos,1)}. False positives = ${100-acc}% × ${healthy} = ${round(falsePos,1)}. Answer = ${round(truePos,1)} ÷ (${round(truePos,1)}+${round(falsePos,1)}) = <b>${ans}</b>. The base rate dominates.`;
+  } else if (t === 'cond') {
+    const r = rint(3, 6), b = rint(2, 5), tot = r + b;
+    const ans = round((r/tot) * ((r-1)/(tot-1)), 2);
+    prompt = `A bag has <b>${r} red</b> and <b>${b} blue</b>. You draw <b>2 without replacement</b>. Probability <b>both red</b>?`;
+    opts = makeProbOpts(ans);
+    work = `${r}/${tot} × ${r-1}/${tot-1} = <b>${ans}</b>. Second draw drops both counts: one fewer red, one fewer total.`;
+  } else if (t === 'lin') {
+    const n = pick([10,12,20,30,60]), p = pick([[1,6],[1,2],[1,3],[2,6]]);
+    const ans = round(n * p[0]/p[1], 2);
+    const disp = ans % 1 === 0 ? ans : `${n}/${round(p[1]/p[0],2)}`;
+    prompt = `You do something <b>${n} times</b>, each with probability <b>${p[0]}/${p[1]}</b> of success. Expected <b>number</b> of successes?`;
+    opts = makeNumOpts(Math.round(ans));
+    work = `Linearity: ${n} × ${p[0]}/${p[1]} = <b>${ans}</b>. Just multiply count × probability — ignore any dependence.`;
+  } else { // geometric
+    const p = pick([[1,2],[1,6],[1,4],[1,3]]);
+    const ans = p[1]/p[0];
+    prompt = `You repeat a trial with success probability <b>${p[0]}/${p[1]}</b> until it succeeds. Expected number of trials?`;
+    opts = makeNumOpts(ans);
+    work = `Geometric distribution: E = 1 / p = 1 / (${p[0]}/${p[1]}) = <b>${ans}</b>.`;
+  }
+
+  probCorrect = work;
+  probAnswered = false;
+  probPrompt.innerHTML = prompt;
+  probOpts.innerHTML = '';
+  opts.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.dataset.correct = o.correct ? '1' : '0';
+    btn.innerHTML = `<span class="letter">${'abcd'[i]}</span>${o.label}`;
+    btn.addEventListener('click', () => revealProb(btn));
+    probOpts.appendChild(btn);
+  });
+  probFb.className = 'feedback';
+  probNext.style.display = 'none';
+  startProbTimer();
+}
+function startProbTimer() {
+  clearInterval(probTimer); probTime = 90;
+  const el = document.getElementById('prob-timer');
+  el.textContent = probTime; el.className = 'v';
+  probTimer = setInterval(() => {
+    probTime--; el.textContent = probTime;
+    el.className = 'v' + (probTime <= 10 ? ' crit' : probTime <= 25 ? ' low' : '');
+    if (probTime <= 0) { clearInterval(probTimer); if (!probAnswered) revealProb(null); }
+  }, 1000);
+}
+function revealProb(clicked) {
+  if (probAnswered) return;
+  probAnswered = true; clearInterval(probTimer);
+  probSeen++;
+  const buttons = [...probOpts.children];
+  buttons.forEach(b => {
+    b.disabled = true;
+    if (b.dataset.correct === '1') b.classList.add('correct');
+  });
+  const ok = clicked && clicked.dataset.correct === '1';
+  if (clicked && !ok) clicked.classList.add('wrong');
+  if (ok) probScore++;
+  document.getElementById('prob-score').textContent = probScore;
+  document.getElementById('prob-total').textContent = probSeen;
+  probFb.className = 'feedback show ' + (ok ? 'ok' : 'no');
+  probFb.innerHTML = `<b class="tag" style="color:var(--${ok?'good':'bad'})">${ok?'correct':(clicked?'not quite':'time up')}</b><div class="work">${probCorrect}</div>`;
+  probNext.style.display = 'inline-block';
+}
+probNext.addEventListener('click', genProb);
+wireChips('prob-types');
+
+/* ============================================================
+   ORDERBOOKS
+============================================================ */
+const obGrid = document.getElementById('ob-grid');
+const obFb = document.getElementById('ob-fb');
+let obScore = 0, obSeen = 0, obData = null, obActions = null, obLocked = false;
+
+function genOrderbook() {
+  obLocked = false;
+  const names = shuffle(['Bolt','Gear','Chip','Coil','Rod','Cap','Disc']).slice(0,3);
+  const items = names.map(name => {
+    const mid = rint(3, 12);
+    const spread = rint(1, 2);
+    return { name, ask: mid + spread, bid: mid - spread }; // bid < ask normally
+  });
+  const partsAskSum = items.reduce((s,i)=>s+i.ask,0);
+  const partsBidSum = items.reduce((s,i)=>s+i.bid,0);
+  // bundle mid roughly around parts, then randomly create arb in A, B, or none
+  const scenario = pick(['buildSell','buyBreak','none','none']);
+  let bundle;
+  if (scenario === 'buildSell') {
+    // bundle bid > partsAskSum  → buy parts, sell bundle
+    const bid = partsAskSum + rint(1, 4);
+    bundle = { name: 'Bundle', ask: bid + rint(1,3), bid };
+  } else if (scenario === 'buyBreak') {
+    // bundle ask < partsBidSum → buy bundle, sell parts
+    const ask = partsBidSum - rint(1, 4);
+    bundle = { name: 'Bundle', ask, bid: ask - rint(1,3) };
+  } else {
+    // no arb: partsAskSum >= bundle.bid AND bundle.ask >= partsBidSum
+    const bid = partsBidSum - rint(0,2);
+    const ask = partsAskSum + rint(0,2);
+    bundle = { name: 'Bundle', ask: Math.max(ask, bid+1), bid };
+  }
+
+  const buildSell = bundle.bid - partsAskSum;      // profit if positive
+  const buyBreak  = partsBidSum - bundle.ask;      // profit if positive
+  const best = Math.max(buildSell, buyBreak, 0);
+  obData = { items, bundle, buildSell, buyBreak, best, scenario, partsAskSum, partsBidSum };
+  obActions = {}; // name -> 'buy'|'sell'|'skip'
+
+  renderOrderbook();
+  obFb.className = 'feedback';
+}
+function renderOrderbook() {
+  const rows = [...obData.items, obData.bundle];
+  let html = `<div class="ob-cell head">Item</div><div class="ob-cell head">Bid (sell)</div><div class="ob-cell head">Ask (buy)</div><div class="ob-cell head">Your action</div>`;
+  rows.forEach(r => {
+    const isBundle = r.name === 'Bundle';
+    html += `<div class="ob-cell item ${isBundle?'bundle':''}">${isBundle?'📦 Bundle':r.name}</div>`;
+    html += `<div class="ob-cell">$${r.bid}</div>`;
+    html += `<div class="ob-cell">$${r.ask}</div>`;
+    html += `<div class="ob-cell"><div class="act-group" data-name="${r.name}">
+      <div class="act buy" data-a="buy">Buy</div>
+      <div class="act sell" data-a="sell">Sell</div>
+      <div class="act skip on" data-a="skip">—</div>
+    </div></div>`;
+  });
+  obGrid.innerHTML = html;
+  rows.forEach(r => obActions[r.name] = 'skip');
+  obGrid.querySelectorAll('.act-group').forEach(g => {
+    g.querySelectorAll('.act').forEach(a => {
+      a.addEventListener('click', () => {
+        if (obLocked) return;
+        g.querySelectorAll('.act').forEach(x => x.classList.remove('on'));
+        a.classList.add('on');
+        obActions[g.dataset.name] = a.dataset.a;
+      });
+    });
+  });
+  document.getElementById('ob-new').style.display = 'none';
+  document.getElementById('ob-check').style.display = 'inline-block';
+}
+function checkOrderbook() {
+  if (obLocked) return;
+  obLocked = true;
+  obSeen++;
+  const { items, bundle, buildSell, buyBreak, best } = obData;
+  // classify user's chosen strategy
+  const bundleAct = obActions['Bundle'];
+  const partsActs = items.map(i => obActions[i.name]);
+  const allPartsBuy = partsActs.every(a => a === 'buy');
+  const allPartsSell = partsActs.every(a => a === 'sell');
+  const allSkip = partsActs.every(a => a === 'skip') && bundleAct === 'skip';
+
+  let userProfit = null, userValid = true, note = '';
+  if (allSkip) { userProfit = 0; note = 'You walked away.'; }
+  else if (allPartsBuy && bundleAct === 'sell') { userProfit = buildSell; note = 'Build & sell: bought all parts, sold the bundle.'; }
+  else if (allPartsSell && bundleAct === 'buy') { userProfit = buyBreak; note = 'Buy & break: bought the bundle, sold the parts.'; }
+  else { userValid = false; note = 'That combination isn\'t a closed position. A clean arbitrage is either buy-all-parts + sell-bundle, or buy-bundle + sell-all-parts (or skip everything).'; }
+
+  const solved = userValid && Math.abs((userProfit||0) - best) < 0.001 && (best > 0 ? userProfit > 0 : true);
+  if (solved) obScore++;
+  document.getElementById('ob-score').textContent = obScore;
+  document.getElementById('ob-total').textContent = obSeen;
+
+  const bestLabel = best > 0
+    ? (buildSell >= buyBreak
+        ? `Buy all parts ($${obData.partsAskSum}) and sell the bundle ($${bundle.bid}) → <b>+$${buildSell}</b>`
+        : `Buy the bundle ($${bundle.ask}) and sell the parts ($${obData.partsBidSum}) → <b>+$${buyBreak}</b>`)
+    : `No arbitrage — both directions lose (build&sell ${buildSell>=0?'+':''}$${buildSell}, buy&break ${buyBreak>=0?'+':''}$${buyBreak}). <b>Correct move: skip.</b>`;
+
+  obFb.className = 'feedback show ' + (solved ? 'ok' : 'no');
+  obFb.innerHTML = `<b class="tag" style="color:var(--${solved?'good':'bad'})">${solved?'solved':'missed'}</b>
+    <div class="work">${note}${userValid?` Your profit: <b>${userProfit>=0?'+':''}$${userProfit}</b>.`:''}<br>Best available: ${bestLabel}</div>`;
+  document.getElementById('ob-check').style.display = 'none';
+  document.getElementById('ob-new').style.display = 'inline-block';
+}
+document.getElementById('ob-check').addEventListener('click', checkOrderbook);
+document.getElementById('ob-new').addEventListener('click', genOrderbook);
+
+/* ============================================================
+   ZAP
+============================================================ */
+let zapScore = 0, zapStreak = 0, zapTime = 30, zapTimer = null, zapRunning = false, zapMode = 'parity', zapCurrent = null;
+const zapContent = document.getElementById('zap-content');
+const zapInstr = document.getElementById('zap-instr');
+
+function setZapInstr() {
+  zapInstr.innerHTML = zapMode === 'parity'
+    ? 'An equation appears. Is the <b>result odd</b>? &nbsp;←&nbsp;Yes &nbsp;/&nbsp; →&nbsp;No'
+    : 'Two arrow rows appear. Do they <b>match exactly</b>? &nbsp;←&nbsp;Yes &nbsp;/&nbsp; →&nbsp;No';
+}
+document.querySelectorAll('#zap-mode .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('#zap-mode .chip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on'); zapMode = c.dataset.m; setZapInstr();
+  });
+});
+setZapInstr();
+
+function nextZap() {
+  if (zapMode === 'parity') {
+    const a = rint(2, 19), b = rint(2, 19), op = pick(['+','×']);
+    const res = op === '+' ? a + b : a * b;
+    const isOdd = res % 2 === 1;
+    zapContent.innerHTML = `<div class="zap-eq">${a} ${op} ${b}</div>`;
+    zapCurrent = { answerYes: isOdd }; // yes = odd
+  } else {
+    const A = Array.from({length:6}, () => pick(['↑','↓','←','→']));
+    const match = Math.random() < 0.5;
+    let B = [...A];
+    if (!match) { const i = rint(0,5); const opts = ['↑','↓','←','→'].filter(x=>x!==A[i]); B[i] = pick(opts); }
+    zapContent.innerHTML = `<div class="arrows a">${A.join(' ')}</div><div class="arrows b">${B.join(' ')}</div>`;
+    zapCurrent = { answerYes: match };
+  }
+}
+function zapAnswer(yes) {
+  if (!zapRunning || !zapCurrent) return;
+  const ok = yes === zapCurrent.answerYes;
+  const btn = document.getElementById(yes ? 'zap-yes' : 'zap-no');
+  btn.classList.add(ok ? 'flash-ok' : 'flash-no');
+  setTimeout(() => btn.classList.remove('flash-ok','flash-no'), 120);
+  if (ok) { zapScore++; zapStreak++; } else { zapStreak = 0; }
+  document.getElementById('zap-score').textContent = zapScore;
+  document.getElementById('zap-streak').textContent = zapStreak;
+  nextZap();
+}
+function startZap() {
+  zapScore = 0; zapStreak = 0; zapTime = 30; zapRunning = true;
+  document.getElementById('zap-score').textContent = 0;
+  document.getElementById('zap-streak').textContent = 0;
+  document.getElementById('zap-idle').style.display = 'none';
+  document.getElementById('zap-play').style.display = 'block';
+  document.getElementById('zap-timer').textContent = zapTime;
+  nextZap();
+  clearInterval(zapTimer);
+  const bar = document.getElementById('zap-bar');
+  zapTimer = setInterval(() => {
+    zapTime -= 0.1;
+    const el = document.getElementById('zap-timer');
+    el.textContent = Math.ceil(zapTime);
+    el.className = 'v' + (zapTime <= 5 ? ' crit' : zapTime <= 12 ? ' low' : '');
+    bar.style.width = (zapTime/30*100) + '%';
+    if (zapTime <= 0) endZap();
+  }, 100);
+}
+function endZap() {
+  clearInterval(zapTimer); zapRunning = false; zapCurrent = null;
+  document.getElementById('zap-play').style.display = 'none';
+  document.getElementById('zap-idle').style.display = 'block';
+  zapInstr.innerHTML = `Run over — <b>${zapScore} correct</b>${zapScore>=25?' 🔥 sharp':''}. Go again?`;
+}
+document.getElementById('zap-begin').addEventListener('click', startZap);
+document.getElementById('zap-yes').addEventListener('click', () => zapAnswer(true));
+document.getElementById('zap-no').addEventListener('click', () => zapAnswer(false));
+document.addEventListener('keydown', e => {
+  if (!zapRunning) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); zapAnswer(true); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); zapAnswer(false); }
+});
+
+/* ---------- init ---------- */
+genSequence();
+genProb();
+genOrderbook();
+</script>
+</body>
+</html>
