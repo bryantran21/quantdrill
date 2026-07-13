@@ -6,7 +6,6 @@ import {
   type ObResult,
   type OrderbookData,
   type Positions,
-  type Side,
 } from './generator'
 import { bestRun, recordAttempt, recordRun } from '../../lib/stats'
 import { useRecordOnFinish, useTimedSession } from '../../session/useTimedSession'
@@ -20,19 +19,23 @@ import { RunBar } from '../../components/RunBar'
 const DURATIONS = [180, 300, 600]
 const MODE = 'orderbooks'
 
-const emptyPositions = (data: OrderbookData): Positions =>
-  Object.fromEntries(data.cards.map((c) => [c.id, 'none'])) as Positions
+const assetName = (assets: OrderbookData['assets'], id: string) =>
+  assets.find((a) => a.id === id)?.name ?? id
+const assetIcon = (assets: OrderbookData['assets'], id: string) =>
+  assets.find((a) => a.id === id)?.icon ?? '📦'
 
-function compositionLabel(card: Card, assets: OrderbookData['assets']): string {
-  const name = (id: string) => assets.find((a) => a.id === id)?.name ?? id
-  return card.composition.map((u) => `${u.qty}× ${name(u.asset)}`).join(' + ')
-}
+/** Bundle icon = its component emojis repeated by quantity, e.g. 🧂🧂 or 🟠🟠🪵. */
+const bundleEmoji = (card: Card, assets: OrderbookData['assets']) =>
+  card.composition.map((u) => assetIcon(assets, u.asset).repeat(u.qty)).join('')
+
+const recipe = (card: Card, assets: OrderbookData['assets']) =>
+  card.composition.map((u) => `${u.qty}× ${assetName(assets, u.asset)}`).join(' + ')
 
 export default function Orderbooks({ active }: { active: boolean }) {
   const s = useTimedSession()
   const [duration, setDuration] = useState(300)
   const [data, setData] = useState<OrderbookData>(generateOrderbook)
-  const [positions, setPositions] = useState<Positions>(() => emptyPositions(data))
+  const [positions, setPositions] = useState<Positions>({})
   const [result, setResult] = useState<ObResult | null>(null)
   const [score, setScore] = useState(0)
   const [seen, setSeen] = useState(0)
@@ -40,9 +43,8 @@ export default function Orderbooks({ active }: { active: boolean }) {
   useRecordOnFinish(s.phase, () => recordRun(MODE, score))
 
   const newBoard = () => {
-    const d = generateOrderbook()
-    setData(d)
-    setPositions(emptyPositions(d))
+    setData(generateOrderbook())
+    setPositions({})
     setResult(null)
   }
 
@@ -53,15 +55,19 @@ export default function Orderbooks({ active }: { active: boolean }) {
     s.start(duration)
   }
 
-  const setSide = (id: string, side: Side) => {
+  // click Buy → +1 unit, Sell → −1 unit, clamped to the board's unit cap
+  const nudge = (id: string, delta: number) => {
     if (result) return
-    setPositions((p) => ({ ...p, [id]: p[id] === side ? 'none' : side }))
+    setPositions((p) => {
+      const q = Math.max(-data.maxUnits, Math.min(data.maxUnits, (p[id] ?? 0) + delta))
+      return { ...p, [id]: q }
+    })
   }
 
   const submit = (asSkip: boolean) => {
     if (result || s.phase !== 'running') return
-    const pos = asSkip ? emptyPositions(data) : positions
-    if (asSkip) setPositions(pos)
+    const pos = asSkip ? {} : positions
+    if (asSkip) setPositions({})
     const r = evaluateBoard(data, pos)
     setResult(r)
     setSeen((n) => n + 1)
@@ -90,9 +96,9 @@ export default function Orderbooks({ active }: { active: boolean }) {
         </div>
       </div>
       <div className="panel-sub">
-        Each card has a <b>buy</b> price and a <b>sell</b> price. Buy some and sell others so every
-        item nets out (a closed position) and you pocket cash — or skip if there's no edge. Bundles
-        (🪣) are worth their contents.
+        Each card has a <b>buy</b> and a <b>sell</b> price. Buy some and sell others so every item
+        nets out (a closed position) and you pocket cash — or skip if there's no edge. Click a side
+        more than once to trade several units (needed to match a bundle's contents).
       </div>
 
       {s.phase === 'idle' && (
@@ -108,35 +114,38 @@ export default function Orderbooks({ active }: { active: boolean }) {
       {s.phase === 'running' && (
         <>
           <div className="ob-cards">
-            {data.cards.map((c) => (
-              <div key={c.id} className={'ob-card' + (c.isBundle ? ' bundle' : '')}>
-                <div className="ob-card-head">
-                  <span className="ob-icon">{c.icon}</span>
-                  <span className="ob-name">{c.name}</span>
+            {data.cards.map((c) => {
+              const q = positions[c.id] ?? 0
+              return (
+                <div key={c.id} className={'ob-card' + (c.isBundle ? ' bundle' : '')}>
+                  <div className="ob-card-head">
+                    <span className="ob-icon">
+                      {c.isBundle ? bundleEmoji(c, data.assets) : c.icon}
+                    </span>
+                    <span className="ob-name">{c.name}</span>
+                  </div>
+                  <div className="ob-recipe">{c.isBundle ? recipe(c, data.assets) : ' '}</div>
+                  <div className="ob-sides">
+                    <button
+                      type="button"
+                      disabled={!!result}
+                      className={'ob-side buy' + (q > 0 ? ' on' : '')}
+                      onClick={() => nudge(c.id, 1)}
+                    >
+                      <span className="s-label">buy{q > 0 ? ` ×${q}` : ''}</span>${c.buy}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!!result}
+                      className={'ob-side sell' + (q < 0 ? ' on' : '')}
+                      onClick={() => nudge(c.id, -1)}
+                    >
+                      <span className="s-label">sell{q < 0 ? ` ×${-q}` : ''}</span>${c.sell}
+                    </button>
+                  </div>
                 </div>
-                <div className="ob-recipe">
-                  {c.isBundle ? compositionLabel(c, data.assets) : ' '}
-                </div>
-                <div className="ob-sides">
-                  <button
-                    type="button"
-                    disabled={!!result}
-                    className={'ob-side buy' + (positions[c.id] === 'buy' ? ' on' : '')}
-                    onClick={() => setSide(c.id, 'buy')}
-                  >
-                    <span className="s-label">buy</span>${c.buy}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!result}
-                    className={'ob-side sell' + (positions[c.id] === 'sell' ? ' on' : '')}
-                    onClick={() => setSide(c.id, 'sell')}
-                  >
-                    <span className="s-label">sell</span>${c.sell}
-                  </button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="controls" style={{ marginTop: 16 }}>
@@ -195,10 +204,15 @@ export default function Orderbooks({ active }: { active: boolean }) {
   )
 }
 
-/** Plain-language description of one optimal position for the feedback line. */
+/** Plain-language description of one optimal position, with quantities. */
 function describeBest(data: OrderbookData): string {
-  const buys = data.cards.filter((c) => data.bestPositions[c.id] === 'buy').map((c) => c.name)
-  const sells = data.cards.filter((c) => data.bestPositions[c.id] === 'sell').map((c) => c.name)
+  const label = (c: Card, q: number) => (q > 1 ? `${q}× ${c.name}` : c.name)
+  const buys = data.cards
+    .filter((c) => (data.bestPositions[c.id] ?? 0) > 0)
+    .map((c) => label(c, data.bestPositions[c.id]))
+  const sells = data.cards
+    .filter((c) => (data.bestPositions[c.id] ?? 0) < 0)
+    .map((c) => label(c, -data.bestPositions[c.id]))
   const parts: string[] = []
   if (buys.length) parts.push(`buy ${buys.join(' + ')}`)
   if (sells.length) parts.push(`sell ${sells.join(' + ')}`)

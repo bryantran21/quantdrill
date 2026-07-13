@@ -37,7 +37,7 @@ export default function Zap({ active }: { active: boolean }) {
     flashTimer.current = setTimeout(() => setFlash(null), 120)
     setSeen((n) => n + 1)
     if (ok) setScore((n) => n + 1)
-    setQ(generateZapQuestion())
+    setQ(generateZapQuestion()) // both boxes and the active one refresh each answer
   }
   const answerRef = useRef(answer)
   answerRef.current = answer
@@ -80,9 +80,9 @@ export default function Zap({ active }: { active: boolean }) {
         </div>
       </div>
       <div className="panel-sub">
-        One box, two questions. Each round it asks either <b>ODD?</b> (is the equation's result
-        odd?) or <b>MATCH?</b> (do the two arrow rows match?) — the label tells you which. Both a
-        number and arrows always show, so watch the label. ← Yes / → No.
+        Two boxes; the <b>highlighted</b> one is your question. It switches between{' '}
+        <b>ODD?</b> (is the equation's result odd?) and <b>MATCH?</b> (do the two arrow rows match?)
+        — so the answer flips with it. Both refresh each round. ← Yes / → No.
       </div>
 
       {s.phase === 'idle' && (
@@ -93,13 +93,18 @@ export default function Zap({ active }: { active: boolean }) {
 
       {s.phase === 'running' && q && (
         <div className="card">
-          <div className={'zap-mode ' + q.mode}>{q.mode === 'parity' ? 'Odd?' : 'Match?'}</div>
-          <div className={'zap-eq zap-el' + (q.mode === 'parity' ? '' : ' dim')}>
-            {q.a} {q.op} {q.b}
-          </div>
-          <div className={'zap-el' + (q.mode === 'arrows' ? '' : ' dim')}>
-            <div className="arrows a">{q.rowA.join(' ')}</div>
-            <div className="arrows b">{q.rowB.join(' ')}</div>
+          <div className="zap-two">
+            <div className={'zap-box' + (q.mode === 'parity' ? ' active' : '')}>
+              <div className="zap-box-label">Odd?</div>
+              <div className="zap-eq">
+                {q.a} {q.op} {q.b}
+              </div>
+            </div>
+            <div className={'zap-box' + (q.mode === 'arrows' ? ' active' : '')}>
+              <div className="zap-box-label">Match?</div>
+              <div className="arrows a">{q.rowA.join(' ')}</div>
+              <div className="arrows b">{q.rowB.join(' ')}</div>
+            </div>
           </div>
           <RunBar frac={s.timeLeft / s.duration} />
           <div className="zap-btns">

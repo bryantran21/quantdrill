@@ -5,13 +5,13 @@ import {
   evaluateBoard,
   generateOrderbook,
   isHedged,
+  maxQty,
   netExposure,
   type Card,
   type OrderbookData,
   type Positions,
 } from './generator'
 
-/** Hand-built board: two items in one asset + a bundle = 1 of each. */
 const card = (
   id: string,
   comp: [string, number][],
@@ -28,44 +28,60 @@ const card = (
   sell,
 })
 
-describe('netExposure & cashFlow', () => {
+const build = (cards: Card[]): OrderbookData => {
+  const { positions, cash } = bestArbitrage(cards)
+  return {
+    assets: [],
+    cards,
+    scenario: 'components-bundle',
+    maxUnits: maxQty(cards),
+    hasArb: cash > 0,
+    best: cash,
+    bestPositions: positions,
+  }
+}
+
+describe('netExposure & cashFlow with integer quantities', () => {
   const cards = [
     card('x', [['a', 1]], 6, 4),
     card('y', [['b', 1]], 5, 3),
     card('bundle', [['a', 1], ['b', 1]], 12, 10, true),
   ]
 
-  it('buying nets +composition, selling nets −composition', () => {
-    const pos: Positions = { x: 'buy', y: 'buy', bundle: 'sell' }
-    // buy x (+a), buy y (+b), sell bundle (−a −b) → all zero
+  it('buying q nets +q·composition, selling nets −q·composition', () => {
+    // buy 1 x (+a), buy 1 y (+b), sell 1 bundle (−a −b) → flat
+    const pos: Positions = { x: 1, y: 1, bundle: -1 }
     expect(netExposure(cards, pos)).toEqual({ a: 0, b: 0 })
     expect(isHedged(netExposure(cards, pos))).toBe(true)
-    // cash: −6 −5 +10 = −1 (this direction loses)
-    expect(cashFlow(cards, pos)).toBe(-1)
+    expect(cashFlow(cards, pos)).toBe(-1) // −6 −5 +10
   })
 
-  it('an unbalanced position is not hedged', () => {
-    expect(isHedged(netExposure(cards, { x: 'buy', y: 'none', bundle: 'none' }))).toBe(false)
+  it('cash scales with quantity', () => {
+    expect(cashFlow(cards, { x: 2, bundle: 0 })).toBe(-12) // buy 2 x
+    expect(cashFlow(cards, { x: -2 })).toBe(8) // sell 2 x at bid 4
   })
 })
 
 describe('bestArbitrage', () => {
-  it('finds build & sell when the bundle bid beats the parts', () => {
-    const cards = [
-      card('x', [['a', 1]], 5, 3),
-      card('y', [['b', 1]], 5, 3),
-      card('bundle', [['a', 1], ['b', 1]], 16, 14, true), // bid 14 > parts ask 10
-    ]
+  it('needs 2 units of an item to hedge a bundle that holds 2 of it', () => {
+    // bundle = 2 salt; build & sell: buy 2 salt (pay 2×5=10), sell bundle (recv 13)
+    const cards = [card('salt', [['a', 1]], 5, 3), card('kit', [['a', 2]], 15, 13, true)]
+    expect(maxQty(cards)).toBe(2)
     const best = bestArbitrage(cards)
-    expect(best.cash).toBe(4) // −5 −5 +14
+    expect(best.cash).toBe(3) // 13 − 10
+    expect(best.positions).toMatchObject({ salt: 2, kit: -1 })
     expect(isHedged(netExposure(cards, best.positions))).toBe(true)
   })
 
   it('finds a crossed market between two venues of one asset', () => {
-    const cards = [
-      card('hi', [['a', 1]], 12, 10), // bid 10
-      card('lo', [['a', 1]], 7, 5), // ask 7  → buy lo, sell hi = +3
-    ]
+    const cards = [card('hi', [['a', 1]], 12, 10), card('lo', [['a', 1]], 7, 5)]
+    expect(bestArbitrage(cards).cash).toBe(3) // buy lo 7, sell hi 10
+  })
+
+  it('does not let a single-unit edge scale past the bundle quantity', () => {
+    // K = 1 here, so the crossed arb can only be done once
+    const cards = [card('hi', [['a', 1]], 12, 10), card('lo', [['a', 1]], 7, 5)]
+    expect(maxQty(cards)).toBe(1)
     expect(bestArbitrage(cards).cash).toBe(3)
   })
 
@@ -73,69 +89,44 @@ describe('bestArbitrage', () => {
     const cards = [
       card('x', [['a', 1]], 6, 4),
       card('y', [['b', 1]], 6, 4),
-      card('bundle', [['a', 1], ['b', 1]], 13, 11, true), // bid 11 < parts ask 12, ask 13 > parts bid 8
+      card('bundle', [['a', 1], ['b', 1]], 13, 11, true),
     ]
     expect(bestArbitrage(cards).cash).toBe(0)
   })
 })
 
 describe('evaluateBoard', () => {
-  const build = (cards: Card[]): OrderbookData => {
-    const { positions, cash } = bestArbitrage(cards)
-    return { assets: [], cards, scenario: 'components-bundle', hasArb: cash > 0, best: cash, bestPositions: positions }
-  }
-
-  it('scores the best hedged position as solved', () => {
-    const data = build([
-      card('x', [['a', 1]], 5, 3),
-      card('y', [['b', 1]], 5, 3),
-      card('bundle', [['a', 1], ['b', 1]], 16, 14, true),
-    ])
-    const r = evaluateBoard(data, { x: 'buy', y: 'buy', bundle: 'sell' })
-    expect(r.hedged).toBe(true)
-    expect(r.cash).toBe(4)
-    expect(r.solved).toBe(true)
+  it('scores the best hedged position as solved, including 2-unit hedges', () => {
+    const data = build([card('salt', [['a', 1]], 5, 3), card('kit', [['a', 2]], 15, 13, true)])
+    expect(data.best).toBe(3)
+    expect(evaluateBoard(data, { salt: 2, kit: -1 }).solved).toBe(true)
+    // buying only 1 salt leaves you short a salt → open position
+    const open = evaluateBoard(data, { salt: 1, kit: -1 })
+    expect(open.hedged).toBe(false)
+    expect(open.solved).toBe(false)
   })
 
   it('a hedged-but-suboptimal position is not solved', () => {
-    // two independent arbs; taking only one is hedged but leaves cash on the table
     const data = build([
       card('x', [['a', 1]], 5, 3),
-      card('bx', [['a', 1]], 12, 10, false),
+      card('bx', [['a', 1]], 12, 10),
       card('y', [['b', 1]], 5, 3),
-      card('by', [['b', 1]], 12, 10, false),
+      card('by', [['b', 1]], 12, 10),
     ])
-    expect(data.best).toBe(10) // (10−5) + (10−5)
-    const onlyOne = evaluateBoard(data, { x: 'buy', bx: 'sell', y: 'none', by: 'none' })
-    expect(onlyOne.hedged).toBe(true)
-    expect(onlyOne.cash).toBe(5)
-    expect(onlyOne.solved).toBe(false)
+    expect(data.best).toBe(10)
+    const one = evaluateBoard(data, { x: 1, bx: -1 })
+    expect(one.hedged).toBe(true)
+    expect(one.cash).toBe(5)
+    expect(one.solved).toBe(false)
   })
 
   it('skipping a no-arb board is solved; skipping a real arb is not', () => {
-    const noArb = build([
-      card('x', [['a', 1]], 6, 4),
-      card('bundle', [['a', 1]], 8, 3, true),
-    ])
+    const noArb = build([card('x', [['a', 1]], 6, 4), card('bundle', [['a', 1]], 8, 3, true)])
     expect(noArb.best).toBe(0)
-    expect(evaluateBoard(noArb, { x: 'none', bundle: 'none' }).solved).toBe(true)
+    expect(evaluateBoard(noArb, {}).solved).toBe(true)
 
-    const arb = build([
-      card('hi', [['a', 1]], 12, 10),
-      card('lo', [['a', 1]], 7, 5),
-    ])
-    expect(evaluateBoard(arb, { hi: 'none', lo: 'none' }).solved).toBe(false)
-  })
-
-  it('an open (unhedged) position is never solved', () => {
-    const data = build([
-      card('x', [['a', 1]], 5, 3),
-      card('y', [['b', 1]], 5, 3),
-      card('bundle', [['a', 1], ['b', 1]], 16, 14, true),
-    ])
-    const r = evaluateBoard(data, { x: 'buy', y: 'none', bundle: 'none' })
-    expect(r.hedged).toBe(false)
-    expect(r.solved).toBe(false)
+    const arb = build([card('hi', [['a', 1]], 12, 10), card('lo', [['a', 1]], 7, 5)])
+    expect(evaluateBoard(arb, {}).solved).toBe(false)
   })
 })
 
@@ -143,12 +134,13 @@ describe('generateOrderbook', () => {
   it('produces sane boards, and its stored best matches a fresh brute force', () => {
     const scenarios = new Set<string>()
     let arbCount = 0
-    for (let i = 0; i < 1500; i++) {
+    let sawMultiUnit = false
+    for (let i = 0; i < 1200; i++) {
       const d = generateOrderbook()
       scenarios.add(d.scenario)
       if (d.hasArb) arbCount++
+      if (Object.values(d.bestPositions).some((q) => Math.abs(q) >= 2)) sawMultiUnit = true
 
-      // every card is a valid two-sided quote
       for (const c of d.cards) {
         expect(c.sell).toBeGreaterThanOrEqual(1)
         expect(c.buy).toBeGreaterThan(c.sell)
@@ -156,17 +148,20 @@ describe('generateOrderbook', () => {
       }
       expect(d.cards.length).toBeLessThanOrEqual(5)
 
-      // the stored best is trustworthy and internally consistent
       const fresh = bestArbitrage(d.cards)
       expect(d.best).toBe(fresh.cash)
       expect(d.hasArb).toBe(fresh.cash > 0)
       expect(isHedged(netExposure(d.cards, d.bestPositions))).toBe(true)
       expect(cashFlow(d.cards, d.bestPositions)).toBe(d.best)
-      expect(d.best).toBeLessThanOrEqual(12)
+      expect(d.best).toBeLessThanOrEqual(14)
+      // no position exceeds the board's unit cap
+      for (const q of Object.values(d.bestPositions)) {
+        expect(Math.abs(q)).toBeLessThanOrEqual(d.maxUnits)
+      }
     }
-    // all three shapes appear, and both arb and no-arb boards occur
     expect(scenarios).toEqual(new Set(['components-bundle', 'crossed-items', 'multi-bundle']))
-    expect(arbCount).toBeGreaterThan(200)
-    expect(arbCount).toBeLessThan(1300)
+    expect(arbCount).toBeGreaterThan(150)
+    expect(arbCount).toBeLessThan(1100)
+    expect(sawMultiUnit).toBe(true) // some solutions require buying/selling ≥2 units
   })
 })
