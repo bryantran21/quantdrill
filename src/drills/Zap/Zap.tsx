@@ -1,66 +1,50 @@
 import { useEffect, useRef, useState } from 'react'
-import { generateZapQuestion, ZAP_MODES, type ZapMode, type ZapQuestion } from './generator'
-import { recordRun } from '../../lib/stats'
-import { ChipGroup } from '../../components/ChipGroup'
+import { generateZapQuestion, type ZapQuestion } from './generator'
+import { bestRun, recordRun } from '../../lib/stats'
+import { useRecordOnFinish, useTimedSession } from '../../session/useTimedSession'
 import { Stat } from '../../components/Stat'
+import { DurationSelect } from '../../components/DurationSelect'
+import { Landing } from '../../components/Landing'
+import { Scorecard } from '../../components/Scorecard'
+import { RunBar } from '../../components/RunBar'
 
-const RUN_SECONDS = 30
+const DURATIONS = [60, 90, 120]
+const MODE = 'zap'
 
 export default function Zap({ active }: { active: boolean }) {
-  const [mode, setMode] = useState<ZapMode>('parity')
-  const [running, setRunning] = useState(false)
+  const s = useTimedSession()
+  const [duration, setDuration] = useState(120)
   const [q, setQ] = useState<ZapQuestion | null>(null)
   const [score, setScore] = useState(0)
-  const [streak, setStreak] = useState(0)
-  const [time, setTime] = useState(RUN_SECONDS)
-  const [lastScore, setLastScore] = useState<number | null>(null)
+  const [seen, setSeen] = useState(0)
   const [flash, setFlash] = useState<{ yes: boolean; ok: boolean } | null>(null)
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  useRecordOnFinish(s.phase, () => recordRun(MODE, score))
+
   const start = () => {
     setScore(0)
-    setStreak(0)
-    setTime(RUN_SECONDS)
-    setQ(generateZapQuestion(mode))
-    setRunning(true)
+    setSeen(0)
+    setQ(generateZapQuestion())
+    s.start(duration)
   }
 
   const answer = (yes: boolean) => {
-    if (!running || !q) return
+    if (s.phase !== 'running' || !q) return
     const ok = yes === q.answerYes
     setFlash({ yes, ok })
     if (flashTimer.current) clearTimeout(flashTimer.current)
     flashTimer.current = setTimeout(() => setFlash(null), 120)
-    if (ok) {
-      setScore((s) => s + 1)
-      setStreak((s) => s + 1)
-    } else {
-      setStreak(0)
-    }
-    setQ(generateZapQuestion(mode))
+    setSeen((n) => n + 1)
+    if (ok) setScore((n) => n + 1)
+    setQ(generateZapQuestion())
   }
   const answerRef = useRef(answer)
   answerRef.current = answer
 
-  // 100ms tick drives both the countdown number and the run bar
+  // ← Yes / → No while a run is live
   useEffect(() => {
-    if (!running) return
-    const id = setInterval(() => setTime((t) => t - 0.1), 100)
-    return () => clearInterval(id)
-  }, [running])
-
-  useEffect(() => {
-    if (running && time <= 0) {
-      setRunning(false)
-      setQ(null)
-      setLastScore(score)
-      recordRun(`zap-${mode}`, score)
-    }
-  }, [time, running, score, mode])
-
-  // ← Yes / → No, only while a run is live
-  useEffect(() => {
-    if (!running) return
+    if (s.phase !== 'running') return
     const h = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
@@ -73,22 +57,11 @@ export default function Zap({ active }: { active: boolean }) {
     }
     document.addEventListener('keydown', h)
     return () => document.removeEventListener('keydown', h)
-  }, [running])
+  }, [s.phase])
 
   useEffect(() => () => {
     if (flashTimer.current) clearTimeout(flashTimer.current)
   }, [])
-
-  const instr =
-    mode === 'parity' ? (
-      <>
-        An equation appears. Is the <b>result odd</b>? &nbsp;←&nbsp;Yes&nbsp;/&nbsp;→&nbsp;No
-      </>
-    ) : (
-      <>
-        Two arrow rows appear. Do they <b>match exactly</b>? &nbsp;←&nbsp;Yes&nbsp;/&nbsp;→&nbsp;No
-      </>
-    )
 
   return (
     <section className={'panel' + (active ? ' active' : '')} aria-hidden={!active}>
@@ -96,81 +69,73 @@ export default function Zap({ active }: { active: boolean }) {
         <div className="panel-title">Zap</div>
         <div className="stats">
           <Stat value={score} label="correct" />
-          <Stat value={streak} label="streak" />
-          <Stat
-            value={Math.max(0, Math.ceil(time))}
-            label="seconds"
-            tone={running && time <= 5 ? 'crit' : running && time <= 12 ? 'low' : undefined}
-          />
+          <Stat value={seen} label="seen" />
+          {s.phase === 'running' && (
+            <Stat
+              value={Math.max(0, Math.ceil(s.timeLeft))}
+              label="seconds"
+              tone={s.timeLeft <= 5 ? 'crit' : s.timeLeft <= 12 ? 'low' : undefined}
+            />
+          )}
         </div>
       </div>
       <div className="panel-sub">
-        Two reflex games, 30-second runs. Speed and accuracy both count — answer with the keyboard.
+        One box, two questions. Each round it asks either <b>ODD?</b> (is the equation's result
+        odd?) or <b>MATCH?</b> (do the two arrow rows match?) — the label tells you which. Both a
+        number and arrows always show, so watch the label. ← Yes / → No.
       </div>
 
-      <div className="controls" style={{ marginBottom: 16 }}>
-        <ChipGroup
-          options={ZAP_MODES}
-          active={new Set([mode])}
-          onToggle={(id) => setMode(id)}
-        />
-      </div>
+      {s.phase === 'idle' && (
+        <Landing onStart={start} startLabel={`Start ${duration}s run`}>
+          <DurationSelect value={duration} options={DURATIONS} onChange={setDuration} />
+        </Landing>
+      )}
 
-      <div className="card">
-        {running && q ? (
-          <div>
-            {q.mode === 'parity' ? (
-              <div className="zap-eq">
-                {q.a} {q.op} {q.b}
-              </div>
-            ) : (
-              <>
-                <div className="arrows a">{q.rowA.join(' ')}</div>
-                <div className="arrows b">{q.rowB.join(' ')}</div>
-              </>
-            )}
-            <div className="runbar">
-              <div style={{ width: `${(Math.max(0, time) / RUN_SECONDS) * 100}%` }} />
-            </div>
-            <div className="zap-btns">
-              <button
-                type="button"
-                className={
-                  'zap-btn' + (flash?.yes ? (flash.ok ? ' flash-ok' : ' flash-no') : '')
-                }
-                onClick={() => answer(true)}
-              >
-                Yes<span className="kbd">← left arrow</span>
-              </button>
-              <button
-                type="button"
-                className={
-                  'zap-btn' + (flash && !flash.yes ? (flash.ok ? ' flash-ok' : ' flash-no') : '')
-                }
-                onClick={() => answer(false)}
-              >
-                No<span className="kbd">→ right arrow</span>
-              </button>
-            </div>
+      {s.phase === 'running' && q && (
+        <div className="card">
+          <div className={'zap-mode ' + q.mode}>{q.mode === 'parity' ? 'Odd?' : 'Match?'}</div>
+          <div className={'zap-eq zap-el' + (q.mode === 'parity' ? '' : ' dim')}>
+            {q.a} {q.op} {q.b}
           </div>
-        ) : (
-          <div className="zap-start">
-            <div className="instr">
-              {lastScore !== null ? (
-                <>
-                  Run over — <b>{lastScore} correct</b>
-                  {lastScore >= 25 ? ' 🔥 sharp' : ''}. Go again?
-                </>
-              ) : (
-                instr
-              )}
-            </div>
-            <button type="button" className="btn" onClick={start}>
-              Start 30s run
+          <div className={'zap-el' + (q.mode === 'arrows' ? '' : ' dim')}>
+            <div className="arrows a">{q.rowA.join(' ')}</div>
+            <div className="arrows b">{q.rowB.join(' ')}</div>
+          </div>
+          <RunBar frac={s.timeLeft / s.duration} />
+          <div className="zap-btns">
+            <button
+              type="button"
+              className={'zap-btn' + (flash?.yes ? (flash.ok ? ' flash-ok' : ' flash-no') : '')}
+              onClick={() => answer(true)}
+            >
+              Yes<span className="kbd">← left arrow</span>
+            </button>
+            <button
+              type="button"
+              className={
+                'zap-btn' + (flash && !flash.yes ? (flash.ok ? ' flash-ok' : ' flash-no') : '')
+              }
+              onClick={() => answer(false)}
+            >
+              No<span className="kbd">→ right arrow</span>
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {s.phase === 'done' && (
+        <Scorecard
+          headline={score}
+          headlineUnit="correct"
+          lines={[
+            { label: 'seen', value: seen },
+            { label: 'accuracy', value: seen ? `${Math.round((score / seen) * 100)}%` : '—' },
+            { label: 'best', value: Math.max(bestRun(MODE), score) },
+          ]}
+          onAgain={start}
+          onSettings={s.reset}
+        />
+      )}
     </section>
   )
 }

@@ -53,6 +53,11 @@ export function recordRun(mode: string, score: number): void {
 export const getAttempts = (): Attempt[] => load<Attempt>(ATTEMPTS_KEY)
 export const getRuns = (): Run[] => load<Run>(RUNS_KEY)
 
+/** Best recorded score for a timed mode, or 0 if none yet. */
+export function bestRun(mode: string): number {
+  return getRuns().reduce((best, r) => (r.mode === mode ? Math.max(best, r.score) : best), 0)
+}
+
 export function clearHistory(): void {
   try {
     localStorage.removeItem(ATTEMPTS_KEY)

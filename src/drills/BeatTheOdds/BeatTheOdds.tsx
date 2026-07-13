@@ -1,63 +1,85 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   generateProbQuestion,
   PROB_TYPES,
   type ProbQuestion,
   type ProbType,
 } from './generator'
-import { recordAttempt } from '../../lib/stats'
+import { bestRun, recordAttempt, recordRun } from '../../lib/stats'
+import { useRecordOnFinish, useTimedSession } from '../../session/useTimedSession'
 import { ChipGroup } from '../../components/ChipGroup'
 import { Stat } from '../../components/Stat'
 import { Feedback } from '../../components/Feedback'
+import { DurationSelect } from '../../components/DurationSelect'
+import { Landing } from '../../components/Landing'
+import { Scorecard } from '../../components/Scorecard'
+import { RunBar } from '../../components/RunBar'
 
-const TIME_LIMIT = 90
+const DURATIONS = [60, 120, 180]
+const MODE = 'beat-the-odds'
 
 export default function BeatTheOdds({ active }: { active: boolean }) {
+  const s = useTimedSession()
+  const [duration, setDuration] = useState(120)
   const [enabled, setEnabled] = useState<Set<ProbType>>(
     () => new Set(PROB_TYPES.map((t) => t.id)),
   )
-  const enabledRef = useRef(enabled)
-  enabledRef.current = enabled
-
-  const [q, setQ] = useState<ProbQuestion>(() => generateProbQuestion([...enabled]))
+  const [q, setQ] = useState<ProbQuestion | null>(null)
   const [picked, setPicked] = useState<number | null>(null)
   const [answered, setAnswered] = useState(false)
-  const [time, setTime] = useState(TIME_LIMIT)
   const [score, setScore] = useState(0)
   const [seen, setSeen] = useState(0)
-  const answeredRef = useRef(false)
 
-  const reveal = (i: number | null) => {
-    if (answeredRef.current) return
-    answeredRef.current = true
+  useRecordOnFinish(s.phase, () => recordRun(MODE, score))
+
+  const start = () => {
+    setScore(0)
+    setSeen(0)
+    setPicked(null)
+    setAnswered(false)
+    setQ(generateProbQuestion([...enabled]))
+    s.start(duration)
+  }
+
+  const reveal = (i: number) => {
+    if (answered || s.phase !== 'running') return
     setAnswered(true)
     setPicked(i)
-    const ok = i !== null && q.options[i].correct
-    setSeen((s) => s + 1)
-    if (ok) setScore((s) => s + 1)
-    recordAttempt('beat-the-odds', q.type, ok)
+    const ok = q!.options[i].correct
+    setSeen((n) => n + 1)
+    if (ok) setScore((n) => n + 1)
+    recordAttempt(MODE, q!.type, ok)
   }
 
   const next = () => {
-    answeredRef.current = false
     setAnswered(false)
     setPicked(null)
-    setTime(TIME_LIMIT)
-    setQ(generateProbQuestion([...enabledRef.current]))
+    setQ(generateProbQuestion([...enabled]))
   }
 
-  useEffect(() => {
-    if (answered) return
-    const id = setInterval(() => setTime((t) => t - 1), 1000)
-    return () => clearInterval(id)
-  }, [q, answered])
+  const toggle = (id: ProbType) =>
+    setEnabled((prev) => {
+      const nxt = new Set(prev)
+      if (nxt.has(id)) nxt.delete(id)
+      else nxt.add(id)
+      return nxt
+    })
 
+  // Enter / Space advances to the next question once answered
   useEffect(() => {
-    if (time <= 0) reveal(null)
+    if (s.phase !== 'running' || !answered) return
+    const h = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        next()
+      }
+    }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time])
+  }, [s.phase, answered])
 
-  const ok = picked !== null && q.options[picked].correct
+  const ok = picked !== null && q !== null && q.options[picked].correct
 
   return (
     <section className={'panel' + (active ? ' active' : '')} aria-hidden={!active}>
@@ -66,68 +88,82 @@ export default function BeatTheOdds({ active }: { active: boolean }) {
         <div className="stats">
           <Stat value={score} label="correct" />
           <Stat value={seen} label="seen" />
-          <Stat
-            value={Math.max(0, time)}
-            label="seconds"
-            tone={time <= 10 ? 'crit' : time <= 25 ? 'low' : undefined}
-          />
+          {s.phase === 'running' && (
+            <Stat
+              value={Math.max(0, Math.ceil(s.timeLeft))}
+              label="seconds"
+              tone={s.timeLeft <= 10 ? 'crit' : s.timeLeft <= 25 ? 'low' : undefined}
+            />
+          )}
         </div>
       </div>
       <div className="panel-sub">
-        Multiple choice, 90 seconds each. Answers are often the nearest option — get close enough
-        to pick, you rarely need an exact decimal.
+        Multiple choice against the clock — answer as many as you can. Answers are often the
+        nearest option, so get close enough to pick.
       </div>
 
-      <div className="controls" style={{ marginBottom: 16 }}>
-        <ChipGroup
-          options={PROB_TYPES}
-          active={enabled}
-          onToggle={(id) =>
-            setEnabled((prev) => {
-              const s = new Set(prev)
-              if (s.has(id)) s.delete(id)
-              else s.add(id)
-              return s
-            })
-          }
+      {s.phase === 'idle' && (
+        <Landing onStart={start} startLabel="Start" disabled={enabled.size === 0}>
+          <ChipGroup options={PROB_TYPES} active={enabled} onToggle={toggle} />
+          <DurationSelect value={duration} options={DURATIONS} onChange={setDuration} />
+          {enabled.size === 0 && <div className="landing-hint">Enable at least one type.</div>}
+        </Landing>
+      )}
+
+      {s.phase === 'running' && q && (
+        <div className="card">
+          {/* generator-authored markup only (<b>, <sup>) — never user input */}
+          <div className="prompt" dangerouslySetInnerHTML={{ __html: q.prompt }} />
+          <div className="opts">
+            {q.options.map((o, i) => (
+              <button
+                key={`${o.label}-${i}`}
+                type="button"
+                disabled={answered}
+                className={
+                  'opt' +
+                  (answered && o.correct ? ' correct' : '') +
+                  (answered && picked === i && !o.correct ? ' wrong' : '')
+                }
+                onClick={() => reveal(i)}
+              >
+                <span className="letter">{'abcd'[i]}</span>
+                {o.label}
+              </button>
+            ))}
+          </div>
+          {answered && (
+            <Feedback
+              ok={ok}
+              tag={ok ? 'correct' : 'not quite'}
+              workHtml={q.work}
+            />
+          )}
+          {answered && (
+            <div className="controls" style={{ marginTop: 16 }}>
+              <button type="button" className="btn ghost" onClick={next}>
+                Next → <span className="kbd-inline">enter</span>
+              </button>
+            </div>
+          )}
+          <div style={{ marginTop: 16 }}>
+            <RunBar frac={s.timeLeft / s.duration} />
+          </div>
+        </div>
+      )}
+
+      {s.phase === 'done' && (
+        <Scorecard
+          headline={score}
+          headlineUnit="correct"
+          lines={[
+            { label: 'seen', value: seen },
+            { label: 'accuracy', value: seen ? `${Math.round((score / seen) * 100)}%` : '—' },
+            { label: 'best', value: Math.max(bestRun(MODE), score) },
+          ]}
+          onAgain={start}
+          onSettings={s.reset}
         />
-      </div>
-
-      <div className="card">
-        {/* generator-authored markup only (<b>, <sup>) — never user input */}
-        <div className="prompt" dangerouslySetInnerHTML={{ __html: q.prompt }} />
-        <div className="opts">
-          {q.options.map((o, i) => (
-            <button
-              key={`${o.label}-${i}`}
-              type="button"
-              disabled={answered}
-              className={
-                'opt' +
-                (answered && o.correct ? ' correct' : '') +
-                (answered && picked === i && !o.correct ? ' wrong' : '')
-              }
-              onClick={() => reveal(i)}
-            >
-              <span className="letter">{'abcd'[i]}</span>
-              {o.label}
-            </button>
-          ))}
-        </div>
-        {answered && (
-          <Feedback
-            ok={ok}
-            tag={ok ? 'correct' : picked !== null ? 'not quite' : 'time up'}
-            workHtml={q.work}
-          />
-        )}
-      </div>
-      {answered && (
-        <div className="controls">
-          <button type="button" className="btn ghost" onClick={next}>
-            Next →
-          </button>
-        </div>
       )}
     </section>
   )

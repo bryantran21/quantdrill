@@ -13,12 +13,15 @@ scored. Runs entirely in the browser; nothing leaves your machine.
 | Drill | What it trains |
 | --- | --- |
 | **Sequences** | Find the next term: arithmetic, geometric, quadratic, fibonacci, woven (interleaved), fraction sequences, product, geometric-gap, alternating-operation. Fractions compare in lowest terms. |
-| **Beat the Odds** | 90-second multiple choice: expected value, complements, binomial, Bayes (the "imagine 1000 people" method), conditional without replacement, linearity of expectation, geometric distribution. Worked solutions after every question. |
-| **Orderbooks** | 3 components + 1 bundle, each with a bid and ask. Buy at ask, sell at bid: build & sell, buy & break, or correctly skip a no-arb book. |
-| **Zap** | 30-second reflex runs: odd/even parity and arrow-row matching, answered with ←/→. |
-| **Arithmetic** | Zetamac-style 2-minute mental-math sprint with auto-submitting answers. |
+| **Beat the Odds** | Multiple choice: expected value, complements, binomial, Bayes (the "imagine 1000 people" method), conditional without replacement, linearity of expectation, geometric distribution. Worked solution after each answer. |
+| **Orderbooks** | Components + a bundle, each with a bid and ask. Buy at ask, sell at bid: build & sell, buy & break, or correctly skip a no-arb book. *(Card-based redesign in progress — see roadmap.)* |
+| **Zap** | Reflex game in a single box whose question flips each round between **ODD?** (is the equation's result odd?) and **MATCH?** (do the two arrow rows match?). Both a number and arrows always show — watch the label. Answer ← Yes / → No. |
+| **Arithmetic** | Zetamac-style mental math with configurable per-operation ranges and auto-submitting answers. |
 
-A **Stats** tab tracks accuracy by drill and question type (localStorage only).
+Every drill runs as a **timed session**: a landing page to pick options and duration, a countdown
+run where you answer as many as you can, then a scorecard (score, accuracy, personal best). A
+**Stats** tab tracks accuracy by drill and question type, and best/last per timed drill
+(localStorage only).
 
 ## Run it
 
@@ -57,10 +60,12 @@ ported from is kept in [prototype/quantdrill.html](prototype/quantdrill.html).
 
 ## Roadmap
 
+- [ ] **Orderbooks card redesign:** themed commodity cards (coil, oil barrel, iron ingot, bag of flour…), bundles of 2–3 items, and a tunable arbitrage generator; wrapped in the same timed-session model as the other drills.
 - [ ] Mock-test mode: all sections back-to-back with per-section timers and a final scorecard
+- [x] Timed-session model for every drill (landing → countdown → scorecard)
 - [x] Harder sequence types (product, geometric-gap, alternating-operation)
 - [x] Per-session stats/history (localStorage) by drill and question type
-- [x] Zetamac-style pure-arithmetic drill
+- [x] Zetamac-style arithmetic drill with configurable ranges
 
 ## Disclaimer
 

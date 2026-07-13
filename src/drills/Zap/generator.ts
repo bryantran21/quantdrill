@@ -2,53 +2,53 @@ import { pick, rint } from '../../lib/random'
 
 export type ZapMode = 'parity' | 'arrows'
 
-export interface ParityQuestion {
-  mode: 'parity'
+/**
+ * A single Zap round. The box always shows BOTH a number (an equation) and two
+ * rows of arrows; `mode` decides which one you're being asked about this round:
+ *  - parity: is the equation's result odd?  (Yes = odd)
+ *  - arrows: do the two arrow rows match exactly?  (Yes = match)
+ * The other element is a live distractor. Answer with ← (Yes) / → (No).
+ */
+export interface ZapQuestion {
+  mode: ZapMode
   a: number
   b: number
   op: '+' | '×'
   result: number
-  /** Yes = the result is odd. */
-  answerYes: boolean
-}
-
-export interface ArrowsQuestion {
-  mode: 'arrows'
   rowA: string[]
   rowB: string[]
-  /** Yes = the rows match exactly. */
+  arrowsMatch: boolean
   answerYes: boolean
 }
-
-export type ZapQuestion = ParityQuestion | ArrowsQuestion
-
-export const ZAP_MODES: { id: ZapMode; label: string }[] = [
-  { id: 'parity', label: 'odd / even' },
-  { id: 'arrows', label: 'arrow match' },
-]
 
 const ARROWS = ['↑', '↓', '←', '→']
 
-export function generateParity(): ParityQuestion {
+export function parityPart(): Pick<ZapQuestion, 'a' | 'b' | 'op' | 'result'> {
   const a = rint(2, 19)
   const b = rint(2, 19)
   const op = pick(['+', '×'] as const)
-  const result = op === '+' ? a + b : a * b
-  return { mode: 'parity', a, b, op, result, answerYes: result % 2 === 1 }
+  return { a, b, op, result: op === '+' ? a + b : a * b }
 }
 
-export function generateArrows(): ArrowsQuestion {
+export function arrowsPart(): Pick<ZapQuestion, 'rowA' | 'rowB' | 'arrowsMatch'> {
   const rowA = Array.from({ length: 6 }, () => pick(ARROWS))
   const match = Math.random() < 0.5
   const rowB = [...rowA]
   if (!match) {
-    // flip exactly one arrow
     const i = rint(0, 5)
     rowB[i] = pick(ARROWS.filter((x) => x !== rowA[i]))
   }
-  return { mode: 'arrows', rowA, rowB, answerYes: match }
+  return { rowA, rowB, arrowsMatch: match }
 }
 
-export function generateZapQuestion(mode: ZapMode): ZapQuestion {
-  return mode === 'parity' ? generateParity() : generateArrows()
+export function generateZapQuestion(): ZapQuestion {
+  const mode: ZapMode = Math.random() < 0.5 ? 'parity' : 'arrows'
+  const p = parityPart()
+  const ar = arrowsPart()
+  return {
+    mode,
+    ...p,
+    ...ar,
+    answerYes: mode === 'parity' ? p.result % 2 === 1 : ar.arrowsMatch,
+  }
 }

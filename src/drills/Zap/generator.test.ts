@@ -1,42 +1,53 @@
 import { describe, expect, it } from 'vitest'
-import { generateArrows, generateParity, generateZapQuestion } from './generator'
+import { arrowsPart, generateZapQuestion, parityPart } from './generator'
 
-describe('parity questions', () => {
-  it('computes the result and keys Yes to odd', () => {
+describe('parity part', () => {
+  it('computes the equation result', () => {
     for (let i = 0; i < 500; i++) {
-      const q = generateParity()
-      const expected = q.op === '+' ? q.a + q.b : q.a * q.b
-      expect(q.result).toBe(expected)
-      expect(q.answerYes).toBe(expected % 2 === 1)
+      const p = parityPart()
+      expect(p.result).toBe(p.op === '+' ? p.a + p.b : p.a * p.b)
     }
   })
 })
 
-describe('arrow questions', () => {
+describe('arrows part', () => {
   it('rows are 6 arrows; non-matching rows differ in exactly one position', () => {
     let matches = 0
     const n = 2000
     for (let i = 0; i < n; i++) {
-      const q = generateArrows()
-      expect(q.rowA).toHaveLength(6)
-      expect(q.rowB).toHaveLength(6)
-      const diffs = q.rowA.filter((a, j) => a !== q.rowB[j]).length
-      if (q.answerYes) {
+      const a = arrowsPart()
+      expect(a.rowA).toHaveLength(6)
+      expect(a.rowB).toHaveLength(6)
+      const diffs = a.rowA.filter((x, j) => x !== a.rowB[j]).length
+      if (a.arrowsMatch) {
         expect(diffs).toBe(0)
         matches++
       } else {
         expect(diffs).toBe(1)
       }
     }
-    // ~50% match rate
     expect(matches / n).toBeGreaterThan(0.4)
     expect(matches / n).toBeLessThan(0.6)
   })
 })
 
 describe('generateZapQuestion', () => {
-  it('dispatches by mode', () => {
-    expect(generateZapQuestion('parity').mode).toBe('parity')
-    expect(generateZapQuestion('arrows').mode).toBe('arrows')
+  it('always includes both a number and arrows, and keys the answer to the active mode', () => {
+    const modes = new Set<string>()
+    for (let i = 0; i < 2000; i++) {
+      const q = generateZapQuestion()
+      modes.add(q.mode)
+      // both elements are always present
+      expect(q.result).toBe(q.op === '+' ? q.a + q.b : q.a * q.b)
+      expect(q.rowA).toHaveLength(6)
+      expect(q.rowB).toHaveLength(6)
+      // answer depends only on the active mode
+      if (q.mode === 'parity') {
+        expect(q.answerYes).toBe(q.result % 2 === 1)
+      } else {
+        expect(q.answerYes).toBe(q.arrowsMatch)
+      }
+    }
+    expect(modes).toEqual(new Set(['parity', 'arrows']))
   })
 })
