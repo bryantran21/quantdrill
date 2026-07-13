@@ -166,21 +166,26 @@ button.btn.ghost:hover { color: var(--text); box-shadow: inset 0 0 0 1px var(--a
 }
 .chip.on { border-color: var(--accent-dim); color: var(--accent); background: rgba(139, 125, 255, 0.08); }
 
-/* orderbook */
-.ob-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.6fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 20px; }
-.ob-cell { background: var(--surface); padding: 12px 14px; font-family: var(--mono); font-size: 14px; display: flex; align-items: center; }
-.ob-cell.head { background: var(--surface-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
-.ob-cell.item { font-weight: 600; }
-.ob-cell.bundle { color: var(--accent); }
-.act-group { display: flex; gap: 4px; width: 100%; }
-.act { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; padding: 6px 0; border-radius: 6px; border: 1px solid var(--line); background: transparent; cursor: pointer; color: var(--muted); transition: all 0.12s; }
-.act.buy.on { border-color: var(--good); color: var(--good); background: rgba(74, 222, 128, 0.1); }
-.act.sell.on { border-color: var(--bad); color: var(--bad); background: rgba(248, 113, 113, 0.1); }
-.act.skip.on { border-color: var(--accent-dim); color: var(--accent); background: rgba(139, 125, 255, 0.08); }
-@media (max-width: 560px) {
-  .ob-grid { grid-template-columns: 1fr 1fr 1fr; }
-  .ob-cell.action { grid-column: 1 / -1; }
-}
+/* orderbook — card board */
+.ob-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
+@media (max-width: 620px) { .ob-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 400px) { .ob-cards { grid-template-columns: 1fr; } }
+.ob-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ob-card.bundle { border-color: var(--accent-dim); background: linear-gradient(0deg, rgba(139, 125, 255, 0.05), rgba(139, 125, 255, 0.05)), var(--surface); }
+.ob-card-head { display: flex; align-items: center; gap: 8px; }
+.ob-icon { font-size: 20px; line-height: 1; }
+.ob-name { font-weight: 600; font-size: 14px; }
+.ob-card.bundle .ob-name { color: var(--accent); }
+.ob-recipe { font-family: var(--mono); font-size: 11px; color: var(--muted); min-height: 14px; letter-spacing: 0.01em; }
+.ob-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: auto; }
+.ob-side { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-family: var(--mono); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.12s; }
+.ob-side .s-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.ob-side:hover:not(:disabled) { border-color: var(--accent-dim); }
+.ob-side.buy.on { border-color: var(--good); background: rgba(74, 222, 128, 0.12); color: var(--good); }
+.ob-side.buy.on .s-label { color: var(--good); }
+.ob-side.sell.on { border-color: var(--bad); background: rgba(248, 113, 113, 0.12); color: var(--bad); }
+.ob-side.sell.on .s-label { color: var(--bad); }
+.ob-side:disabled { cursor: default; opacity: 0.9; }
 
 /* zap + arithmetic */
 .zap-eq { font-family: var(--mono); font-size: 44px; font-weight: 600; text-align: center; padding: 30px 0; letter-spacing: 0.02em; }
