@@ -12,10 +12,12 @@ scored. Runs entirely in the browser; nothing leaves your machine.
 
 | Drill | What it trains |
 | --- | --- |
-| **Sequences** | Find the next term: arithmetic, geometric, quadratic, fibonacci, woven (interleaved), fraction sequences, product, geometric-gap, alternating-operation. Fractions compare in lowest terms. |
+| **Sequences** (NumberLogic) | Find the next term: arithmetic, geometric, quadratic, fibonacci, woven (interleaved), fraction sequences, product, geometric-gap, alternating-operation. Fractions compare in lowest terms. |
 | **Beat the Odds** | Multiple choice: expected value, complements, binomial, Bayes (the "imagine 1000 people" method), conditional without replacement, linearity of expectation, geometric distribution. Worked solution after each answer. |
-| **Orderbooks** | A board of commodity cards, each with a buy and sell price; bundles (🪣) are combinations of items with quantities. Buy some and sell others so every underlying asset nets flat (a closed position) and you pocket cash — or skip a no-arb board. The best combination is brute-forced, so grading is exact. Scenarios: components+bundle, crossed items, multiple bundles. |
-| **Zap** | Reflex game in a single box whose question flips each round between **ODD?** (is the equation's result odd?) and **MATCH?** (do the two arrow rows match?). Both a number and arrows always show — watch the label. Answer ← Yes / → No. |
+| **Likelihood-list** | Rank a set of outcomes from most to least likely (dice totals, coloured-ball draws, coin-flip counts). Weights are exact, so the correct order is unambiguous. |
+| **Intervals** | Estimate a value and bracket it with a lower/upper bound. You score only if the answer lands inside, and tighter intervals score more (up to 10) — a wild always-right guess earns almost nothing. |
+| **Orderbooks** | A board of commodity cards, each with a buy and sell price; bundles show their contents as repeated emojis (🧂🧂🟠). Trade cards in any quantity so every underlying asset nets flat and you pocket cash — or skip a no-arb board. The best combination is brute-forced, so grading is exact. Scenarios: components+bundle, crossed items, multiple bundles. |
+| **Zap** | Two boxes, each with an equation and two arrow rows. Answer the highlighted one: the **top** box asks *is the result odd?*, the **bottom** box asks *do the arrows match?* The active box switches each round. Answer ← Yes / → No. |
 | **Arithmetic** | Zetamac-style mental math with configurable per-operation ranges and auto-submitting answers. |
 
 Every drill runs as a **timed session**: a landing page to pick options and duration, a countdown
@@ -60,8 +62,8 @@ ported from is kept in [prototype/quantdrill.html](prototype/quantdrill.html).
 
 ## Roadmap
 
-- [ ] More assessment sections: **NumberLogic** (numerical reasoning), **Likelihood-list** (rank outcomes most→least likely), **Intervals** (estimate a value with upper/lower bounds).
 - [ ] Mock-test mode: all sections back-to-back with per-section timers and a final scorecard
+- [x] Likelihood-list and Intervals sections (NumberLogic = the Sequences drill)
 - [x] Orderbooks card redesign: commodity cards, bundles with quantities, brute-forced arbitrage engine
 - [x] Timed-session model for every drill (landing → countdown → scorecard)
 - [x] Harder sequence types (product, geometric-gap, alternating-operation)

@@ -233,6 +233,25 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .start-row { display: flex; gap: 10px; align-items: center; }
 .landing-hint { color: var(--muted); font-size: 13px; font-family: var(--mono); }
 
+/* likelihood — ranking list */
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+.rank-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 15px; cursor: pointer; transition: all 0.12s; }
+.rank-item:hover:not(:disabled) { border-color: var(--accent-dim); }
+.rank-item.on { border-color: var(--accent-dim); background: rgba(139, 125, 255, 0.08); }
+.rank-item:disabled { cursor: default; }
+.rank-badge { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; border-radius: 7px; border: 1px solid var(--line); font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--muted); }
+.rank-item.on .rank-badge { border-color: var(--accent); color: var(--accent); background: rgba(139, 125, 255, 0.12); }
+.rank-label { flex: 1; }
+.rank-correct { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+/* intervals — bounded estimate */
+.interval-q { text-align: center; font-family: var(--mono); font-size: 30px; font-weight: 600; padding: 18px 0 22px; letter-spacing: 0.01em; }
+.interval-inputs { display: flex; align-items: flex-end; justify-content: center; gap: 12px; margin-bottom: 20px; }
+.interval-field { display: flex; flex-direction: column; gap: 6px; }
+.interval-field span { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); text-align: center; }
+.interval-field input { width: 130px; text-align: center; font-size: 20px !important; }
+.interval-dash { color: var(--muted); font-size: 22px; padding-bottom: 12px; }
+
 /* scorecard */
 .scorecard { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 22px 0; text-align: center; }
 .scorecard .big { font-family: var(--mono); font-size: 56px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
@@ -242,15 +261,19 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .score-lines .sl .v { font-size: 20px; font-weight: 600; }
 .score-lines .sl .l { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 2px; }
 
-/* zap — two boxes, active one prioritised */
-.zap-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px; }
-@media (max-width: 520px) { .zap-two { grid-template-columns: 1fr; } }
-.zap-box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 16px; background: var(--surface-2); opacity: 0.4; transition: opacity 0.15s, box-shadow 0.15s, border-color 0.15s; }
+/* zap — a top and a bottom box, active one prioritised */
+.zap-stack { display: flex; flex-direction: column; gap: 12px; margin-bottom: 6px; }
+.zap-box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface-2); opacity: 0.4; transition: opacity 0.15s, box-shadow 0.15s, border-color 0.15s; }
 .zap-box.active { opacity: 1; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 1px var(--accent), 0 0 26px rgba(139, 125, 255, 0.18); }
-.zap-box-label { text-align: center; font-family: var(--mono); font-weight: 700; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.zap-box-label { font-family: var(--mono); font-weight: 700; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .zap-box.active .zap-box-label { color: var(--accent); }
-.zap-box .zap-eq { font-size: 34px; padding: 16px 0; }
-.zap-box .arrows { font-size: 24px; letter-spacing: 4px; padding: 6px 0; }
+.zap-box-body { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.zap-box-eq { font-family: var(--mono); font-size: 34px; font-weight: 600; letter-spacing: 0.02em; }
+.zap-box-arrows .arrows { font-size: 24px; letter-spacing: 4px; padding: 3px 0; text-align: right; }
+@media (max-width: 480px) {
+  .zap-box-body { justify-content: center; }
+  .zap-box-arrows .arrows { text-align: center; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

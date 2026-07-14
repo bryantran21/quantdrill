@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { generateZapQuestion, type ZapQuestion } from './generator'
+import { generateZapQuestion, type ZapBox, type ZapQuestion } from './generator'
 import { bestRun, recordRun } from '../../lib/stats'
 import { useRecordOnFinish, useTimedSession } from '../../session/useTimedSession'
 import { Stat } from '../../components/Stat'
@@ -10,6 +10,23 @@ import { RunBar } from '../../components/RunBar'
 
 const DURATIONS = [60, 90, 120]
 const MODE = 'zap'
+
+function Box({ box, active, label }: { box: ZapBox; active: boolean; label: string }) {
+  return (
+    <div className={'zap-box' + (active ? ' active' : '')}>
+      <div className="zap-box-label">{label}</div>
+      <div className="zap-box-body">
+        <div className="zap-box-eq">
+          {box.a} {box.op} {box.b}
+        </div>
+        <div className="zap-box-arrows">
+          <div className="arrows a">{box.rowA.join(' ')}</div>
+          <div className="arrows b">{box.rowB.join(' ')}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Zap({ active }: { active: boolean }) {
   const s = useTimedSession()
@@ -42,7 +59,6 @@ export default function Zap({ active }: { active: boolean }) {
   const answerRef = useRef(answer)
   answerRef.current = answer
 
-  // ← Yes / → No while a run is live
   useEffect(() => {
     if (s.phase !== 'running') return
     const h = (e: KeyboardEvent) => {
@@ -80,9 +96,9 @@ export default function Zap({ active }: { active: boolean }) {
         </div>
       </div>
       <div className="panel-sub">
-        Two boxes; the <b>highlighted</b> one is your question. It switches between{' '}
-        <b>ODD?</b> (is the equation's result odd?) and <b>MATCH?</b> (do the two arrow rows match?)
-        — so the answer flips with it. Both refresh each round. ← Yes / → No.
+        Two boxes, each with an equation and two arrow rows. Answer the <b>highlighted</b> one:
+        the <b>top</b> box asks <b>is the result odd?</b>, the <b>bottom</b> box asks <b>do the
+        arrows match?</b> The active box switches each round. ← Yes / → No.
       </div>
 
       {s.phase === 'idle' && (
@@ -93,18 +109,9 @@ export default function Zap({ active }: { active: boolean }) {
 
       {s.phase === 'running' && q && (
         <div className="card">
-          <div className="zap-two">
-            <div className={'zap-box' + (q.mode === 'parity' ? ' active' : '')}>
-              <div className="zap-box-label">Odd?</div>
-              <div className="zap-eq">
-                {q.a} {q.op} {q.b}
-              </div>
-            </div>
-            <div className={'zap-box' + (q.mode === 'arrows' ? ' active' : '')}>
-              <div className="zap-box-label">Match?</div>
-              <div className="arrows a">{q.rowA.join(' ')}</div>
-              <div className="arrows b">{q.rowB.join(' ')}</div>
-            </div>
+          <div className="zap-stack">
+            <Box box={q.top} active={q.active === 'top'} label="Top — result odd?" />
+            <Box box={q.bottom} active={q.active === 'bottom'} label="Bottom — arrows match?" />
           </div>
           <RunBar frac={s.timeLeft / s.duration} />
           <div className="zap-btns">
