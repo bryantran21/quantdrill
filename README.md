@@ -31,16 +31,24 @@ run where you answer as many as you can, then a scorecard (score, accuracy, pers
 npm install
 npm run dev      # dev server
 npm test         # generator unit tests (vitest)
-npm run build    # static bundle in dist/, served from /quantdrill/
+npm run build    # static bundle in dist/ (base '/')
 npm run preview  # serve the production build locally
 ```
 
-## Deploying to GitHub Pages
+## Deploying
 
-Pushes to `main` run [.github/workflows/deploy.yml](.github/workflows/deploy.yml): install, test,
-build, and deploy to GitHub Pages. One-time setup on the repo: **Settings → Pages → Source →
-"GitHub Actions"**. The Vite `base` is set to `/quantdrill/` in
-[vite.config.ts](vite.config.ts) — if you fork under a different repo name, change it to match.
+The app is a static bundle, so any static host works. The Vite `base` is `'/'` by default (root
+domains like Vercel), and the GitHub Pages workflow builds with `GITHUB_PAGES=true` to switch it to
+`'/quantdrill/'` — see [vite.config.ts](vite.config.ts).
+
+**Vercel (root domain):** import the repo at [vercel.com/new](https://vercel.com/new). Vercel
+auto-detects the Vite preset (build `npm run build`, output `dist`) and redeploys on every push to
+`main`. No base change needed.
+
+**GitHub Pages (project subpath):** pushes to `main` run
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) (install, test, build, deploy). One-time
+setup: **Settings → Pages → Source → "GitHub Actions"**. Serves at `/<repo-name>/`, so keep the repo
+named `quantdrill` (or change the `GITHUB_PAGES` base in `vite.config.ts`).
 
 ## Tech
 
