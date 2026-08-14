@@ -14,6 +14,7 @@ import { DurationSelect } from '../../components/DurationSelect'
 import { Landing } from '../../components/Landing'
 import { Scorecard } from '../../components/Scorecard'
 import { RunBar } from '../../components/RunBar'
+import { CheatSheet } from './CheatSheet'
 
 const DURATIONS = [60, 120, 180]
 const MODE = 'beat-the-odds'
@@ -107,6 +108,7 @@ export default function BeatTheOdds({ active }: { active: boolean }) {
           <ChipGroup options={PROB_TYPES} active={enabled} onToggle={toggle} />
           <DurationSelect value={duration} options={DURATIONS} onChange={setDuration} />
           {enabled.size === 0 && <div className="landing-hint">Enable at least one type.</div>}
+          <CheatSheet />
         </Landing>
       )}
 

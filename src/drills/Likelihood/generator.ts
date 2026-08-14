@@ -8,7 +8,7 @@ import { comb } from '../../lib/math'
  * ordering is unambiguous.
  */
 
-export type LikelihoodType = 'dice-sum' | 'bag' | 'coin'
+export type LikelihoodType = 'dice-sum' | 'bag' | 'coin' | 'chart'
 
 export interface Outcome {
   id: string
@@ -100,7 +100,27 @@ function buildCoin(): LikelihoodQuestion | null {
   )
 }
 
-const BUILDERS = [buildDiceSum, buildBag, buildCoin]
+const NAMES = ['Ava', 'Ben', 'Cara', 'Dan', 'Eli', 'Fern']
+
+function buildChart(): LikelihoodQuestion | null {
+  const counts = shuffle([4, 7, 10, 13, 16, 19, 22]).slice(0, rint(3, 4))
+  const total = counts.reduce((s, c) => s + c, 0)
+  const spinner = Math.random() < 0.5
+  const items = spinner
+    ? shuffle([...COLORS]).slice(0, counts.length).map((c, i) => ({ label: c, weight: counts[i] }))
+    : shuffle([...NAMES]).slice(0, counts.length).map((n, i) => ({ label: n, weight: counts[i] }))
+  // counts are drawn distinct, so weights are already distinct
+  return assemble(
+    'chart',
+    spinner
+      ? 'A spinner is split into slices of these sizes. Rank the colours from most to least likely to land.'
+      : 'This chart shows how many raffle tickets each person bought. Rank them from most to least likely to win.',
+    items,
+    `Taller bar = more likely (${total} total). Just read the heights.`,
+  )
+}
+
+const BUILDERS = [buildDiceSum, buildBag, buildCoin, buildChart]
 
 export function generateLikelihoodQuestion(): LikelihoodQuestion {
   for (let i = 0; i < 40; i++) {

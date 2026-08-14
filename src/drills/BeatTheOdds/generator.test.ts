@@ -2,12 +2,18 @@ import { describe, expect, it } from 'vitest'
 import {
   buildBayes,
   buildBinom,
+  buildCards,
   buildComp,
   buildCond,
+  buildCoupon,
   buildEv,
   buildGeoQ,
   buildLin,
+  buildOrder,
+  buildRuin,
+  buildStreak,
   generateProbQuestion,
+  makeApproxOpts,
   makeMoneyOpts,
   makeNumOpts,
   makeProbOpts,
@@ -65,6 +71,29 @@ describe('probability builders compute known-correct answers', () => {
   it('geometric: success 1/6 per trial → 6 expected trials', () => {
     expect(buildGeoQ([1, 6]).answer).toBe(6)
   })
+
+  it("gambler's ruin: $3 toward $10 on a fair game → 3/10 = 0.30", () => {
+    expect(buildRuin(3, 10).answer).toBe(0.3)
+  })
+
+  it('coupon collector: 3 prizes → 3·H₃ = 5.5 boxes', () => {
+    expect(buildCoupon(3).answer).toBe(5.5)
+  })
+
+  it('cards: same-suit second draw = 12/51 ≈ 0.24; both red = 0.25', () => {
+    expect(buildCards('same-suit').answer).toBe(0.24)
+    expect(buildCards('both-red').answer).toBe(0.25)
+  })
+
+  it('order stats on two dice: P(max=6)=11/36≈0.31; P(min≥5)=(2/6)²≈0.11', () => {
+    expect(buildOrder('max', 6).answer).toBe(0.31)
+    expect(buildOrder('min', 5).answer).toBe(0.11)
+  })
+
+  it('streak waiting times: HH → 6, HT → 4', () => {
+    expect(buildStreak('HH').answer).toBe(6)
+    expect(buildStreak('HT').answer).toBe(4)
+  })
 })
 
 describe('option helpers', () => {
@@ -74,6 +103,7 @@ describe('option helpers', () => {
         makeMoneyOpts(Math.round(Math.random() * 20 - 5), 1 + (i % 3)),
         makeProbOpts(Math.round(Math.random() * 100) / 100),
         makeNumOpts(Math.floor(Math.random() * 12)),
+        makeApproxOpts(2 + Math.random() * 10),
       ]) {
         expect(opts).toHaveLength(4)
         expect(opts.filter((o) => o.correct)).toHaveLength(1)

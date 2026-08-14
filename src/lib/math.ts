@@ -22,3 +22,10 @@ export const round = (x: number, d = 2): number => {
   const p = 10 ** d
   return Math.round(x * p) / p
 }
+
+/** nth harmonic number H_n = 1 + 1/2 + … + 1/n (used by coupon collector). */
+export function harmonic(n: number): number {
+  let s = 0
+  for (let i = 1; i <= n; i++) s += 1 / i
+  return s
+}

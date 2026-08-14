@@ -1,7 +1,19 @@
 import { pick, rint, shuffle } from '../../lib/random'
-import { comb, round } from '../../lib/math'
+import { comb, harmonic, round } from '../../lib/math'
 
-export type ProbType = 'ev' | 'comp' | 'binom' | 'bayes' | 'cond' | 'lin' | 'geo'
+export type ProbType =
+  | 'ev'
+  | 'comp'
+  | 'binom'
+  | 'bayes'
+  | 'cond'
+  | 'lin'
+  | 'geo'
+  | 'ruin'
+  | 'coupon'
+  | 'cards'
+  | 'order'
+  | 'streak'
 
 export interface ProbOption {
   label: string
@@ -27,6 +39,11 @@ export const PROB_TYPES: { id: ProbType; label: string }[] = [
   { id: 'cond', label: 'conditional' },
   { id: 'lin', label: 'linearity' },
   { id: 'geo', label: 'geometric' },
+  { id: 'ruin', label: "gambler's ruin" },
+  { id: 'coupon', label: 'coupon collector' },
+  { id: 'cards', label: 'cards' },
+  { id: 'order', label: 'order stats' },
+  { id: 'streak', label: 'streaks' },
 ]
 
 /* ---------- distractor helpers (ported from the prototype) ---------- */
@@ -73,6 +90,21 @@ export function makeNumOpts(correct: number): ProbOption[] {
   }
   while (set.size < 4) set.add(rint(0, correct + 3))
   return shuffle([...set]).map((v) => ({ label: String(v), correct: v === correct }))
+}
+
+/** Non-integer count options (e.g. coupon collector), rounded to 1 decimal. */
+export function makeApproxOpts(correct: number): ProbOption[] {
+  const r1 = (x: number) => round(x, 1)
+  const target = r1(correct)
+  const set = new Set<number>([target])
+  const cands = [r1(correct * 0.7), r1(correct * 1.3), r1(correct + 2), r1(correct - 1.5)]
+  for (const c of shuffle(cands)) {
+    if (set.size >= 4) break
+    if (c > 0) set.add(c)
+  }
+  let f = 1
+  while (set.size < 4) set.add(r1(correct + f++))
+  return shuffle([...set]).map((v) => ({ label: String(v), correct: v === target }))
 }
 
 /* ---------- question builders (pure given their params) ---------- */
@@ -171,6 +203,87 @@ export function buildGeoQ(p: [number, number]): ProbQuestion {
   }
 }
 
+export function buildRuin(k: number, N: number): ProbQuestion {
+  // fair game → P(reach N before 0) = start / target
+  const ans = round(k / N, 2)
+  return {
+    type: 'ruin',
+    prompt: `You have <b>$${k}</b> and bet <b>$1</b> at a time on fair coin flips, stopping when you hit <b>$${N}</b> or go broke. Probability you reach <b>$${N}</b>?`,
+    options: makeProbOpts(ans),
+    work: `Fair game, so the ruin probability is just start ÷ target = ${k}/${N} = <b>${ans}</b>. No drift means your money is a martingale.`,
+    answer: ans,
+  }
+}
+
+export function buildCoupon(n: number): ProbQuestion {
+  // expected draws to collect all n distinct types = n · H_n
+  const ans = round(n * harmonic(n), 1)
+  return {
+    type: 'coupon',
+    prompt: `A cereal box holds one of <b>${n}</b> equally likely prizes. Expected number of boxes to collect <b>all ${n}</b>?`,
+    options: makeApproxOpts(ans),
+    work: `Coupon collector: n·(1 + 1/2 + … + 1/n) = ${n} × ${round(harmonic(n), 2)} = <b>${ans}</b>. Each new prize takes longer as the deck fills up.`,
+    answer: ans,
+  }
+}
+
+export function buildCards(variant: 'same-suit' | 'both-red'): ProbQuestion {
+  if (variant === 'same-suit') {
+    const ans = round(12 / 51, 2)
+    return {
+      type: 'cards',
+      prompt: `Draw <b>2 cards</b> from a 52-card deck without replacement. Probability the second card is the <b>same suit</b> as the first?`,
+      options: makeProbOpts(ans),
+      work: `After the first card, 12 of the remaining 51 share its suit → 12/51 = <b>${ans}</b>.`,
+      answer: ans,
+    }
+  }
+  const ans = round((26 / 52) * (25 / 51), 2)
+  return {
+    type: 'cards',
+    prompt: `Draw <b>2 cards</b> from a 52-card deck without replacement. Probability <b>both are red</b>?`,
+    options: makeProbOpts(ans),
+    work: `26/52 × 25/51 = <b>${ans}</b>. The second draw drops both the red count and the total.`,
+    answer: ans,
+  }
+}
+
+export function buildOrder(kind: 'max' | 'min', m: number): ProbQuestion {
+  if (kind === 'max') {
+    const ans = round((2 * m - 1) / 36, 2)
+    return {
+      type: 'order',
+      prompt: `Roll <b>two dice</b>. Probability the <b>higher</b> of the two equals <b>${m}</b>?`,
+      options: makeProbOpts(ans),
+      work: `P(max = ${m}) = (2·${m}−1)/36 = ${2 * m - 1}/36 = <b>${ans}</b>. There are ${2 * m - 1} ways for the higher die to be ${m}.`,
+      answer: ans,
+    }
+  }
+  const ans = round(((7 - m) / 6) ** 2, 2)
+  return {
+    type: 'order',
+    prompt: `Roll <b>two dice</b>. Probability the <b>lower</b> of the two is <b>at least ${m}</b>?`,
+    options: makeProbOpts(ans),
+    work: `Both dice ≥ ${m}: ((7−${m})/6)² = (${7 - m}/6)² = <b>${ans}</b>.`,
+    answer: ans,
+  }
+}
+
+export function buildStreak(pattern: 'HH' | 'HT'): ProbQuestion {
+  // expected flips to first see the pattern on a fair coin
+  const ans = pattern === 'HH' ? 6 : 4
+  return {
+    type: 'streak',
+    prompt: `Flip a fair coin until you first see <b>${pattern}</b> (in a row). Expected number of flips?`,
+    options: makeNumOpts(ans),
+    work:
+      pattern === 'HH'
+        ? `Waiting time for HH is <b>6</b>. A broken streak (…H then T) sends you all the way back, so HH is slower than HT.`
+        : `Waiting time for HT is <b>4</b>. Once you get a head, every later tail completes it — no costly resets.`,
+    answer: ans,
+  }
+}
+
 export function generateProbQuestion(enabled: ProbType[]): ProbQuestion {
   const t = enabled.length ? pick(enabled) : 'ev'
   switch (t) {
@@ -190,5 +303,17 @@ export function generateProbQuestion(enabled: ProbType[]): ProbQuestion {
       return buildLin(pick([10, 12, 20, 30, 60]), pick<[number, number]>([[1, 6], [1, 2], [1, 3], [2, 6]]))
     case 'geo':
       return buildGeoQ(pick<[number, number]>([[1, 2], [1, 6], [1, 4], [1, 3]]))
+    case 'ruin': {
+      const N = pick([5, 10, 20])
+      return buildRuin(rint(1, N - 1), N)
+    }
+    case 'coupon':
+      return buildCoupon(pick([3, 4, 5, 6]))
+    case 'cards':
+      return buildCards(pick(['same-suit', 'both-red']))
+    case 'order':
+      return buildOrder(pick(['max', 'min']), rint(2, 6))
+    case 'streak':
+      return buildStreak(pick(['HH', 'HT']))
   }
 }

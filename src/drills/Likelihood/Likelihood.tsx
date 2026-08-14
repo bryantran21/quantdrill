@@ -50,6 +50,14 @@ export default function Likelihood({ active }: { active: boolean }) {
     recordAttempt(MODE, q.type, ok)
   }
 
+  const skip = () => {
+    if (result !== null) return
+    setSeen((n) => n + 1)
+    recordAttempt(MODE, q.type, false)
+    newQuestion()
+  }
+
+  const maxWeight = Math.max(...q.outcomes.map((o) => o.weight))
   const labelOf = (id: string) => q.outcomes.find((o) => o.id === id)?.label ?? id
   const correctText = q.correctOrder.map((id, i) => `${i + 1}. ${labelOf(id)}`).join(' &nbsp; ')
 
@@ -71,7 +79,7 @@ export default function Likelihood({ active }: { active: boolean }) {
       </div>
       <div className="panel-sub">
         Rank the outcomes from <b>most</b> to <b>least</b> likely. Click them in order — the number
-        shows the rank you've assigned. Click again to unset.
+        shows the rank you've assigned. Click again to unset, or <b>Skip</b> to pass.
       </div>
 
       {s.phase === 'idle' && (
@@ -88,6 +96,21 @@ export default function Likelihood({ active }: { active: boolean }) {
           <div className="prompt" style={{ marginBottom: 18 }}>
             {q.prompt}
           </div>
+          {q.type === 'chart' && (
+            <div className="likelihood-chart" aria-hidden>
+              {q.outcomes.map((o) => (
+                <div className="lchart-col" key={o.id}>
+                  <div className="lchart-track">
+                    <div
+                      className="lchart-bar"
+                      style={{ height: `${(o.weight / maxWeight) * 100}%` }}
+                    />
+                  </div>
+                  <div className="lchart-x">{o.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="rank-list">
             {q.outcomes.map((o) => {
               const rank = picked.indexOf(o.id)
@@ -127,6 +150,9 @@ export default function Likelihood({ active }: { active: boolean }) {
                     Clear
                   </button>
                 )}
+                <button type="button" className="btn ghost" onClick={skip}>
+                  Skip
+                </button>
               </>
             ) : (
               <button type="button" className="btn" onClick={newQuestion}>

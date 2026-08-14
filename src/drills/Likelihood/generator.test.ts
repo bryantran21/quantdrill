@@ -22,7 +22,7 @@ describe('generateLikelihoodQuestion', () => {
         expect(ordered[j - 1]).toBeGreaterThan(ordered[j])
       }
     }
-    expect(types).toEqual(new Set(['dice-sum', 'bag', 'coin']))
+    expect(types).toEqual(new Set(['dice-sum', 'bag', 'coin', 'chart']))
   })
 
   it('orders a known dice case correctly (7 > 4 > 2 by combinations)', () => {
