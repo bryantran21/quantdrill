@@ -13,8 +13,8 @@ No install, no login, no backend. Everything runs in your browser, and nothing l
 | Drill | What it trains |
 | --- | --- |
 | **Sequences** (NumberLogic) | Find the next term: arithmetic, geometric, quadratic, fibonacci, woven (interleaved), fraction sequences, product, geometric-gap, alternating-operation. Fractions compare in lowest terms. |
-| **Beat the Odds** | Multiple choice: expected value, complements, binomial, Bayes (the "imagine 1000 people" method), conditional without replacement, linearity of expectation, geometric distribution. Worked solution after each answer. |
-| **Likelihood-list** | Rank a set of outcomes from most to least likely (dice totals, coloured-ball draws, coin-flip counts). Weights are exact, so the correct order is unambiguous. |
+| **Beat the Odds** | Timed multiple choice across 12 topics: expected value, complement (at-least-one), binomial, Bayes (the "imagine 1000 people" method), conditional without replacement, linearity of expectation, geometric waiting time, gambler's ruin, coupon collector, cards, order statistics (max/min of two dice), and streak waiting times. A worked solution follows every answer, and a pop-open **formula cheat sheet** collects the ~11 core tools. |
+| **Likelihood-list** | Rank a set of outcomes from most to least likely — dice totals, coloured-ball draws, coin-flip counts, and **bar-chart reads** (spinner slices, raffle tickets). Weights are exact, so the correct order is unambiguous; **Skip** to pass. |
 | **Intervals** | Estimate a value and bracket it with a lower/upper bound. You score only if the answer lands inside, and tighter intervals score more — a wild always-right guess earns almost nothing. |
 | **Orderbooks** | A board of commodity cards, each with a buy and sell price; bundles show their contents as repeated emojis (🧂🧂🟠). Trade cards in any quantity so every underlying asset nets flat and you pocket cash — or skip a no-arb board. |
 | **Zap** | Two boxes, each with an equation and two arrow rows. Answer the highlighted one: the **top** box asks *is the result odd?*, the **bottom** box asks *do the arrows match?* The active box switches each round. ← Yes / → No. |
