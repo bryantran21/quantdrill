@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Firms from './firms/Firms'
 import Sequences from './drills/Sequences/Sequences'
 import BeatTheOdds from './drills/BeatTheOdds/BeatTheOdds'
 import Likelihood from './drills/Likelihood/Likelihood'
@@ -8,27 +9,21 @@ import Zap from './drills/Zap/Zap'
 import Arithmetic from './drills/Arithmetic/Arithmetic'
 import Stats from './drills/Stats/Stats'
 import { ThemeToggle } from './components/ThemeToggle'
+import { TABS, type TabId } from './tabs'
 
 // TODO: mock-test mode — run all sections back-to-back with per-section
 // timers and a final scorecard (see the roadmap in README.md).
 
-const TABS = [
-  { id: 'seq', label: 'Sequences' },
-  { id: 'prob', label: 'Beat the Odds' },
-  { id: 'like', label: 'Likelihood' },
-  { id: 'intv', label: 'Intervals' },
-  { id: 'ob', label: 'Orderbooks' },
-  { id: 'zap', label: 'Zap' },
-  { id: 'arith', label: 'Arithmetic' },
-  { id: 'stats', label: 'Stats' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
-
 export default function App() {
-  const [tab, setTab] = useState<TabId>('seq')
+  const [tab, setTab] = useState<TabId>('firms')
 
-  // number keys switch drills anywhere except inside a text field
+  // jumping in from the firm directory should land at the top of the drill
+  const open = (id: TabId) => {
+    setTab(id)
+    window.scrollTo({ top: 0 })
+  }
+
+  // number keys switch tabs anywhere except inside a text field
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
@@ -68,6 +63,7 @@ export default function App() {
       </nav>
 
       {/* all panels stay mounted so scores and timers survive tab switches */}
+      <Firms active={tab === 'firms'} onOpen={open} />
       <Sequences active={tab === 'seq'} />
       <BeatTheOdds active={tab === 'prob'} />
       <Likelihood active={tab === 'like'} />
@@ -80,7 +76,7 @@ export default function App() {
       <footer>
         built for reps · warm up on the Arithmetic tab before the real thing
         <br />
-        keys: <span className="kbd-inline">1</span>–<span className="kbd-inline">8</span> switch
+        keys: <span className="kbd-inline">1</span>–<span className="kbd-inline">9</span> switch
         sections · <span className="kbd-inline">enter</span> submit ·{' '}
         <span className="kbd-inline">←</span>/<span className="kbd-inline">→</span> in Zap
       </footer>

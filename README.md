@@ -8,6 +8,18 @@ arbitrage, and timed reflex games. Every drill generates fresh questions, times 
 
 No install, no login, no backend. Everything runs in your browser, and nothing leaves your machine.
 
+## Prep by firm
+
+The app opens on a firm directory: pick the firm you're interviewing with and jump straight into
+the drills its assessments lean on. Covers **Optiver, Jane Street, Citadel, Two Sigma, Hudson River
+Trading, Jump, D. E. Shaw, SIG, IMC, Akuna, and Virtu**.
+
+- **Optiver** is marked *matches OA* — the drills mirror its online assessment section for section.
+- The other firms show **focus areas** drawn from publicly shared candidate reports, plus rounds
+  this app doesn't cover (usually coding), so you know what else to prepare.
+
+Firm mappings are unofficial and change over time.
+
 ## Drills
 
 | Drill | What it trains |
@@ -24,7 +36,7 @@ Every drill runs as a **timed session**: pick your options and duration, hit sta
 countdown, then get a scorecard with your score, accuracy, and personal best. A **Stats** tab tracks
 accuracy by drill and question type across sessions (stored locally in your browser).
 
-**Keyboard:** `1`–`8` switch drills · `Enter` submits · `←` / `→` answer in Zap.
+**Keyboard:** `1`–`9` switch tabs · `Enter` submits · `←` / `→` answer in Zap.
 
 ## Built with
 
