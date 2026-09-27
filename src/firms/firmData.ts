@@ -19,6 +19,8 @@ export interface Firm {
   documented?: boolean
   /** Rounds candidates report that this app does not cover. */
   alsoExpect?: string
+  /** In-page link to extra material for this firm (e.g. a puzzle list). */
+  extraLink?: { label: string; href: string }
 }
 
 export const FIRMS: Firm[] = [
@@ -36,6 +38,7 @@ export const FIRMS: Firm[] = [
     focus: 'Known for probability, expected value, estimation, and mental math, often framed as trading games.',
     drills: ['prob', 'intv', 'arith', 'ob'],
     alsoExpect: 'live market-making games in interviews',
+    extraLink: { label: 'Their monthly puzzles ↓', href: '#js-puzzles' },
   },
   {
     id: 'citadel',
