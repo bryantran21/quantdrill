@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { FIRMS } from './firmData'
 import { JS_ARCHIVE_URL, JS_PUZZLES } from './janeStreetPuzzles'
 import { tabLabel, type TabId } from '../tabs'
@@ -25,7 +26,16 @@ export default function Firms({ active, onOpen }: FirmsProps) {
         {FIRMS.map((f) => (
           <div className="firm-card" key={f.id}>
             <div className="firm-head">
-              <span className="firm-name">{f.name}</span>
+              <span className="firm-id">
+                <span
+                  className={'firm-icon' + (f.mono.length >= 3 ? ' long' : '')}
+                  style={{ '--h': f.hue } as CSSProperties}
+                  aria-hidden
+                >
+                  {f.mono}
+                </span>
+                <span className="firm-name">{f.name}</span>
+              </span>
               {f.documented && <span className="firm-badge">matches OA</span>}
             </div>
             <p className="firm-focus">{f.focus}</p>

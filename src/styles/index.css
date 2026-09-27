@@ -276,6 +276,16 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .firm-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .firm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .firm-name { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+.firm-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* monogram tile; --h is the firm's hue, set inline */
+.firm-icon {
+  width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; border-radius: 9px;
+  font-family: var(--mono); font-weight: 700; font-size: 15px; letter-spacing: -0.03em;
+  color: hsl(var(--h) 75% 72%); background: hsl(var(--h) 60% 55% / 0.14);
+  border: 1px solid hsl(var(--h) 60% 55% / 0.35);
+}
+.firm-icon.long { font-size: 11px; letter-spacing: -0.02em; }
+:root[data-theme='light'] .firm-icon { color: hsl(var(--h) 70% 27%); background: hsl(var(--h) 70% 50% / 0.12); }
 .firm-badge { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
 .firm-focus { color: var(--muted); font-size: 13px; line-height: 1.5; }
 .firm-card .chip:hover { background: rgba(139, 125, 255, 0.16); }

@@ -11,6 +11,10 @@ import type { DrillId } from '../tabs'
 export interface Firm {
   id: string
   name: string
+  /** 1-3 character monogram shown in the card icon. */
+  mono: string
+  /** Icon colour hue (0-360); spread with the golden angle so neighbours differ. */
+  hue: number
   /** One-line, hedged summary of what the firm's assessments lean on. */
   focus: string
   /** Drills that train those skills, most relevant first. */
@@ -27,6 +31,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'optiver',
     name: 'Optiver',
+    mono: 'O',
+    hue: 250,
     focus:
       'Online assessment in six sections: probability, number logic, likelihood ranking, estimation intervals, orderbook arbitrage, and Zap-N reflex games.',
     drills: ['prob', 'seq', 'like', 'intv', 'ob', 'zap'],
@@ -35,6 +41,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'jane-street',
     name: 'Jane Street',
+    mono: 'JS',
+    hue: 28,
     focus: 'Known for probability, expected value, estimation, and mental math, often framed as trading games.',
     drills: ['prob', 'intv', 'arith', 'ob'],
     alsoExpect: 'live market-making games in interviews',
@@ -43,6 +51,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'citadel',
     name: 'Citadel / Citadel Securities',
+    mono: 'C',
+    hue: 165,
     focus: 'Trading and quant assessments lean on probability, fast mental math, and sequence questions.',
     drills: ['prob', 'arith', 'seq'],
     alsoExpect: 'coding rounds for quant and SWE roles',
@@ -50,6 +60,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'two-sigma',
     name: 'Two Sigma',
+    mono: '2σ',
+    hue: 303,
     focus: 'Quant roles emphasise probability, statistics, and quantitative reasoning.',
     drills: ['prob', 'seq', 'intv'],
     alsoExpect: 'coding and statistics interviews',
@@ -57,6 +69,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'hrt',
     name: 'Hudson River Trading',
+    mono: 'HRT',
+    hue: 80,
     focus: 'Probability, mental math, and logical reasoning, alongside strong coding.',
     drills: ['prob', 'arith', 'seq'],
     alsoExpect: 'coding-heavy technical rounds',
@@ -64,6 +78,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'jump',
     name: 'Jump Trading',
+    mono: 'J',
+    hue: 218,
     focus: 'Probability, mental math, and trading intuition.',
     drills: ['prob', 'arith', 'ob'],
     alsoExpect: 'market-making and trading interviews',
@@ -71,6 +87,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'de-shaw',
     name: 'D. E. Shaw',
+    mono: 'DE',
+    hue: 355,
     focus: 'Quantitative aptitude: probability, sequences, and mental math.',
     drills: ['prob', 'seq', 'arith'],
     alsoExpect: 'coding rounds for technical roles',
@@ -78,6 +96,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'sig',
     name: 'SIG',
+    mono: 'SIG',
+    hue: 133,
     focus: 'Heavy on probability, expected value, and decisions under uncertainty.',
     drills: ['prob', 'like', 'arith'],
     alsoExpect: 'poker and game-theory style questions',
@@ -85,12 +105,16 @@ export const FIRMS: Firm[] = [
   {
     id: 'imc',
     name: 'IMC',
+    mono: 'IMC',
+    hue: 270,
     focus: 'Known for a fast timed numerical test, plus sequences and probability.',
     drills: ['arith', 'seq', 'prob'],
   },
   {
     id: 'akuna',
     name: 'Akuna Capital',
+    mono: 'A',
+    hue: 48,
     focus: 'Mental math, probability, sequences, and market intuition.',
     drills: ['arith', 'prob', 'seq', 'ob'],
     alsoExpect: 'options-pricing questions',
@@ -98,6 +122,8 @@ export const FIRMS: Firm[] = [
   {
     id: 'virtu',
     name: 'Virtu',
+    mono: 'V',
+    hue: 185,
     focus: 'Mental math and numerical reasoning.',
     drills: ['arith', 'seq', 'prob'],
   },

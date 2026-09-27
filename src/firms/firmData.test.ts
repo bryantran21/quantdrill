@@ -17,6 +17,16 @@ describe('FIRMS', () => {
     }
   })
 
+  it('every firm has a short monogram and a distinct icon hue', () => {
+    for (const f of FIRMS) {
+      expect(f.mono.length).toBeGreaterThan(0)
+      expect(f.mono.length).toBeLessThanOrEqual(3)
+      expect(f.hue).toBeGreaterThanOrEqual(0)
+      expect(f.hue).toBeLessThan(360)
+    }
+    expect(new Set(FIRMS.map((f) => f.hue)).size).toBe(FIRMS.length)
+  })
+
   it('Optiver covers all six of its documented OA sections', () => {
     const optiver = FIRMS.find((f) => f.id === 'optiver')!
     expect(optiver.documented).toBe(true)
