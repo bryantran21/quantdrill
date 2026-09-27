@@ -18,7 +18,7 @@ Trading, Jump, D. E. Shaw, SIG, IMC, Akuna, and Virtu**.
 - The other firms show **focus areas** drawn from publicly shared candidate reports, plus rounds
   this app doesn't cover (usually coding), so you know what else to prepare.
 
-Firm mappings are unofficial and change over time.
+Firm mappings are unofficial and change over time. Firm logos are trademarks of their respective owners, shown only to identify each firm.
 
 ## Drills
 

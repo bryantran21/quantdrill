@@ -15,6 +15,12 @@ export interface Firm {
   mono: string
   /** Icon colour hue (0-360); spread with the golden angle so neighbours differ. */
   hue: number
+  /**
+   * Firm's own site icon in public/logos. 'tile' icons carry their own
+   * background and fill the frame; 'mark' icons are bare and get padding.
+   * Absent when no square icon reads well at 36px (monogram shown instead).
+   */
+  logo?: { file: string; fit: 'tile' | 'mark' }
   /** One-line, hedged summary of what the firm's assessments lean on. */
   focus: string
   /** Drills that train those skills, most relevant first. */
@@ -33,6 +39,7 @@ export const FIRMS: Firm[] = [
     name: 'Optiver',
     mono: 'O',
     hue: 250,
+    logo: { file: 'optiver.png', fit: 'mark' },
     focus:
       'Online assessment in six sections: probability, number logic, likelihood ranking, estimation intervals, orderbook arbitrage, and Zap-N reflex games.',
     drills: ['prob', 'seq', 'like', 'intv', 'ob', 'zap'],
@@ -43,6 +50,7 @@ export const FIRMS: Firm[] = [
     name: 'Jane Street',
     mono: 'JS',
     hue: 28,
+    logo: { file: 'jane-street.svg', fit: 'tile' },
     focus: 'Known for probability, expected value, estimation, and mental math, often framed as trading games.',
     drills: ['prob', 'intv', 'arith', 'ob'],
     alsoExpect: 'live market-making games in interviews',
@@ -53,6 +61,7 @@ export const FIRMS: Firm[] = [
     name: 'Citadel / Citadel Securities',
     mono: 'C',
     hue: 165,
+    logo: { file: 'citadel.png', fit: 'tile' },
     focus: 'Trading and quant assessments lean on probability, fast mental math, and sequence questions.',
     drills: ['prob', 'arith', 'seq'],
     alsoExpect: 'coding rounds for quant and SWE roles',
@@ -62,6 +71,7 @@ export const FIRMS: Firm[] = [
     name: 'Two Sigma',
     mono: '2σ',
     hue: 303,
+    logo: { file: 'two-sigma.png', fit: 'mark' },
     focus: 'Quant roles emphasise probability, statistics, and quantitative reasoning.',
     drills: ['prob', 'seq', 'intv'],
     alsoExpect: 'coding and statistics interviews',
@@ -71,6 +81,7 @@ export const FIRMS: Firm[] = [
     name: 'Hudson River Trading',
     mono: 'HRT',
     hue: 80,
+    logo: { file: 'hrt.png', fit: 'tile' },
     focus: 'Probability, mental math, and logical reasoning, alongside strong coding.',
     drills: ['prob', 'arith', 'seq'],
     alsoExpect: 'coding-heavy technical rounds',
@@ -80,6 +91,7 @@ export const FIRMS: Firm[] = [
     name: 'Jump Trading',
     mono: 'J',
     hue: 218,
+    logo: { file: 'jump.png', fit: 'tile' },
     focus: 'Probability, mental math, and trading intuition.',
     drills: ['prob', 'arith', 'ob'],
     alsoExpect: 'market-making and trading interviews',
@@ -98,6 +110,7 @@ export const FIRMS: Firm[] = [
     name: 'SIG',
     mono: 'SIG',
     hue: 133,
+    logo: { file: 'sig.png', fit: 'tile' },
     focus: 'Heavy on probability, expected value, and decisions under uncertainty.',
     drills: ['prob', 'like', 'arith'],
     alsoExpect: 'poker and game-theory style questions',
@@ -107,6 +120,7 @@ export const FIRMS: Firm[] = [
     name: 'IMC',
     mono: 'IMC',
     hue: 270,
+    logo: { file: 'imc.png', fit: 'mark' },
     focus: 'Known for a fast timed numerical test, plus sequences and probability.',
     drills: ['arith', 'seq', 'prob'],
   },
@@ -115,6 +129,7 @@ export const FIRMS: Firm[] = [
     name: 'Akuna Capital',
     mono: 'A',
     hue: 48,
+    logo: { file: 'akuna.png', fit: 'tile' },
     focus: 'Mental math, probability, sequences, and market intuition.',
     drills: ['arith', 'prob', 'seq', 'ob'],
     alsoExpect: 'options-pricing questions',
@@ -124,6 +139,7 @@ export const FIRMS: Firm[] = [
     name: 'Virtu',
     mono: 'V',
     hue: 185,
+    logo: { file: 'virtu.png', fit: 'mark' },
     focus: 'Mental math and numerical reasoning.',
     drills: ['arith', 'seq', 'prob'],
   },

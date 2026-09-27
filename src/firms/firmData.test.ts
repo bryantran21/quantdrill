@@ -1,3 +1,5 @@
+/// <reference types="node" /> // this test reads public/logos from disk
+import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { FIRMS } from './firmData'
 import { TABS } from '../tabs'
@@ -25,6 +27,12 @@ describe('FIRMS', () => {
       expect(f.hue).toBeLessThan(360)
     }
     expect(new Set(FIRMS.map((f) => f.hue)).size).toBe(FIRMS.length)
+  })
+
+  it('every referenced logo file exists in public/logos', () => {
+    for (const f of FIRMS) {
+      if (f.logo) expect(existsSync(`public/logos/${f.logo.file}`), f.logo.file).toBe(true)
+    }
   })
 
   it('Optiver covers all six of its documented OA sections', () => {

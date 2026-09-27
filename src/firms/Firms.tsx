@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react'
-import { FIRMS } from './firmData'
+import { useState, type CSSProperties } from 'react'
+import { FIRMS, type Firm } from './firmData'
 import { JS_ARCHIVE_URL, JS_PUZZLES } from './janeStreetPuzzles'
 import { tabLabel, type TabId } from '../tabs'
 
@@ -10,6 +10,34 @@ interface FirmsProps {
 }
 
 const external = { target: '_blank', rel: 'noopener noreferrer' } as const
+
+/** Firm's site icon, falling back to a monogram tile if missing or it fails to load. */
+function FirmIcon({ firm }: { firm: Firm }) {
+  const [failed, setFailed] = useState(false)
+  if (firm.logo && !failed) {
+    return (
+      <span className={'firm-logo ' + firm.logo.fit} aria-hidden>
+        <img
+          src={`${import.meta.env.BASE_URL}logos/${firm.logo.file}`}
+          alt=""
+          width={36}
+          height={36}
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      </span>
+    )
+  }
+  return (
+    <span
+      className={'firm-icon' + (firm.mono.length >= 3 ? ' long' : '')}
+      style={{ '--h': firm.hue } as CSSProperties}
+      aria-hidden
+    >
+      {firm.mono}
+    </span>
+  )
+}
 
 export default function Firms({ active, onOpen }: FirmsProps) {
   return (
@@ -27,13 +55,7 @@ export default function Firms({ active, onOpen }: FirmsProps) {
           <div className="firm-card" key={f.id}>
             <div className="firm-head">
               <span className="firm-id">
-                <span
-                  className={'firm-icon' + (f.mono.length >= 3 ? ' long' : '')}
-                  style={{ '--h': f.hue } as CSSProperties}
-                  aria-hidden
-                >
-                  {f.mono}
-                </span>
+                <FirmIcon firm={f} />
                 <span className="firm-name">{f.name}</span>
               </span>
               {f.documented && <span className="firm-badge">matches OA</span>}
@@ -110,7 +132,8 @@ export default function Firms({ active, onOpen }: FirmsProps) {
 
       <p className="firm-disclaimer">
         Focus areas come from publicly shared candidate reports and vary by role and year. Not
-        official, and not affiliated with any firm.
+        official, and not affiliated with any firm. Logos are trademarks of their respective
+        owners, shown only to identify each firm.
       </p>
     </section>
   )
